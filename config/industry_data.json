@@ -1,0 +1,403 @@
+{
+  "_comment": "存储行业基准数据 - 数据来源 TrendForce/DRAMeXchange 公开摘要，需定期更新",
+  "_updated": "2026-07-07",
+  "dram_contract_price_qoq": {
+    "_note": "DRAM 合约价环比变动(%), 负值=降价周期, 正=涨价周期",
+    "_last_updated": "2026-07-09",
+    "2024-Q2": -5.0,
+    "2024-Q3": 3.0,
+    "2024-Q4": 12.0,
+    "2025-Q1": 15.0,
+    "2025-Q2": 10.0,
+    "2025-Q3": 15.0,
+    "2025-Q4": 28.0,
+    "2026-Q1": 95.0,
+    "2026-Q2": 60.0,
+    "2026-Q3": 15.0
+  },
+  "nand_contract_price_qoq": {
+    "_note": "NAND 合约价环比变动(%), 负值=降价周期, 正=涨价周期",
+    "2024-Q2": -8.0,
+    "2024-Q3": 0.0,
+    "2024-Q4": 8.0,
+    "2025-Q1": 13.0,
+    "2025-Q2": 8.0,
+    "2025-Q3": 15.0,
+    "2025-Q4": 20.0,
+    "2026-Q1": 75.0,
+    "2026-Q2": 65.0,
+    "2026-Q3": 13.0,
+    "_last_updated": "2026-07-09"
+  },
+  "hbm_market": {
+    "_note": "HBM 市场容量估算 (亿美元)",
+    "2024": 180,
+    "2025": 350,
+    "2026_e": 500,
+    "hbm3e_share_2026": 0.5,
+    "hbm4_expected": "2026H1",
+    "key_suppliers": [
+      "SK Hynix",
+      "Samsung",
+      "Micron"
+    ],
+    "market_share_estimate": {
+      "SK Hynix": 0.52,
+      "Samsung": 0.33,
+      "Micron": 0.15
+    },
+    "2027_e": 700,
+    "_last_updated": "2026-07-09"
+  },
+  "nvidia_gpu_quarterly": {
+    "_note": "NVDA Data Center GPU 出货量估算 (万颗), 含 H100/H200/B200/B300",
+    "2024-Q1": 45,
+    "2024-Q2": 55,
+    "2024-Q3": 65,
+    "2024-Q4": 75,
+    "2025-Q1": 85,
+    "2025-Q2": 95,
+    "2025-Q3": 105,
+    "2025-Q4": 110,
+    "2026-Q1": 115,
+    "2026-Q2": 120
+  },
+  "memory_peers": {
+    "_note": "存储板块对标公司及分类",
+    "_last_updated": "2026-07-09",
+    "dram_focused": [
+      {
+        "ticker": "MU",
+        "name": "Micron Technology",
+        "market": "US"
+      },
+      {
+        "ticker": "000660.KS",
+        "name": "SK Hynix",
+        "market": "KR"
+      }
+    ],
+    "nand_focused": [
+      {
+        "ticker": "WDC",
+        "name": "Western Digital",
+        "market": "US"
+      },
+      {
+        "ticker": "SNDK",
+        "name": "SanDisk Corporation",
+        "market": "US"
+      }
+    ],
+    "hdd_hybrid": [
+      {
+        "ticker": "STX",
+        "name": "Seagate Technology",
+        "market": "US"
+      }
+    ],
+    "benchmark": {
+      "ticker": "^SOX",
+      "name": "SOX 半导体指数"
+    }
+  },
+  "technology_nodes": {
+    "_last_updated": "2026-07-09",
+    "dram": [
+      {
+        "node": "1a nm",
+        "mass_production": "2022",
+        "status": "成熟",
+        "note": "上一代主力节点"
+      },
+      {
+        "node": "1b nm",
+        "mass_production": "2024",
+        "status": "量产",
+        "note": "HBM4主力节点, 三星/SK海力士使用"
+      },
+      {
+        "node": "1c nm",
+        "mass_production": "2025H2",
+        "status": "上量中",
+        "note": "三大厂2026全面导入, EUV高k金属栅"
+      },
+      {
+        "node": "1d nm",
+        "mass_production": "2026H2",
+        "status": "试产/研发",
+        "note": "三星2026率先推出, 平面DRAM微缩极限"
+      },
+      {
+        "node": "0a nm",
+        "mass_production": "2027E",
+        "status": "研发",
+        "note": "VCT垂直通道晶体管, 4F^2架构, 亚10nm"
+      },
+      {
+        "node": "3D DRAM",
+        "mass_production": "2029E",
+        "status": "研发",
+        "note": "单片堆叠, 无电容2T0C, IGZO沟道"
+      }
+    ],
+    "nand": [
+      {
+        "node": "276-321L",
+        "mass_production": "2024-2025",
+        "status": "量产",
+        "note": "当前主力: 三星V9 286L/美光276L/SK321L"
+      },
+      {
+        "node": "400L+",
+        "mass_production": "2026H2",
+        "status": "试产/量产",
+        "note": "三星V10 BV键合NAND, 位密度+60%, SK海力士2025底量产准备"
+      },
+      {
+        "node": "500L+",
+        "mass_production": "2027E",
+        "status": "研发",
+        "note": "三星V11, I/O速率+50%, 低温HAR蚀刻"
+      },
+      {
+        "node": "1000L",
+        "mass_production": "2030E",
+        "status": "研发",
+        "note": "三星/铠侠路线图, 混合键合+新材料"
+      }
+    ]
+  },
+  "capex_guidance": {
+    "_note": "各大存储厂 Capex 指引 (亿美元/年)",
+    "_last_updated": "2026-07-09",
+    "MU": {
+      "2024": 80,
+      "2025": 138,
+      "2026_e": 270,
+      "2027_e": 350,
+      "note": "FY2026从Q1的0B一路上调至Q3的~7B, FY2027预计再增0B+"
+    },
+    "WDC": {
+      "2024": 22,
+      "2025": 28,
+      "2026_e": 32
+    },
+    "STX": {
+      "2024": 8,
+      "2025": 10,
+      "2026_e": 12
+    }
+  },
+  "gpu_hbm_specs": {
+    "_note": "NVIDIA GPU 各代 HBM 配置规格，用于量化 HBM 需求模型",
+    "_last_updated": "2026-07-07",
+    "generations": [
+      {
+        "name": "H100",
+        "hbm_type": "HBM2e/HBM3",
+        "hbm_capacity_gb": 80,
+        "stacks": 5,
+        "stack_capacity_gb": 16,
+        "ship_year": "2023",
+        "status": "量产"
+      },
+      {
+        "name": "H200",
+        "hbm_type": "HBM3e",
+        "hbm_capacity_gb": 141,
+        "stacks": 6,
+        "stack_capacity_gb": 24,
+        "ship_year": "2024",
+        "status": "量产"
+      },
+      {
+        "name": "B200",
+        "hbm_type": "HBM3e",
+        "hbm_capacity_gb": 192,
+        "stacks": 8,
+        "stack_capacity_gb": 24,
+        "ship_year": "2025",
+        "status": "上量中"
+      },
+      {
+        "name": "B300",
+        "hbm_type": "HBM3e",
+        "hbm_capacity_gb": 288,
+        "stacks": 12,
+        "stack_capacity_gb": 24,
+        "ship_year": "2025H2",
+        "status": "试产"
+      },
+      {
+        "name": "Rubin",
+        "hbm_type": "HBM4",
+        "hbm_capacity_gb": 384,
+        "stacks": 12,
+        "stack_capacity_gb": 32,
+        "ship_year": "2026H2",
+        "status": "研发"
+      },
+      {
+        "name": "Rubin Ultra",
+        "hbm_type": "HBM4",
+        "hbm_capacity_gb": 512,
+        "stacks": 16,
+        "stack_capacity_gb": 32,
+        "ship_year": "2027E",
+        "status": "规划"
+      }
+    ],
+    "nvda_quarterly_revenue": {
+      "_note": "NVDA Data Center Compute(GPU) 季度营收(亿美元), 来源: NVDA 季报",
+      "_source": "NVDA FY2027 Q1 财报 (May 2026): DC营收$752亿, 其中Compute $604亿(80%), Networking $148亿",
+      "_last_updated": "2026-07-09",
+      "2024-Q1": 180,
+      "2024-Q2": 210,
+      "2024-Q3": 246,
+      "2024-Q4": 285,
+      "2025-Q1": 313,
+      "2025-Q2": 329,
+      "2025-Q3": 410,
+      "2025-Q4": 499,
+      "2026-Q1": 604,
+      "2026-Q2": 672
+    },
+    "asp_per_gpu_k_usd": {
+      "_note": "各代 GPU 均价估算 (千美元), 含配套 HBM 成本. 来源: NVDA list price + 行业估算",
+      "H100": 25,
+      "H200": 35,
+      "B200": 45,
+      "B300": 55,
+      "Rubin": 65
+    },
+    "gpu_mix_ratios": {
+      "_note": "各时间段 GPU 型号出货占比估算, 来源: 供应链信息+NVDA财报推断",
+      "2024": {"H100": 0.7, "H200": 0.3, "B200": 0.0, "B300": 0.0, "Rubin": 0.0},
+      "2025-H1": {"H100": 0.2, "H200": 0.6, "B200": 0.2, "B300": 0.0, "Rubin": 0.0},
+      "2025-H2": {"H100": 0.0, "H200": 0.35, "B200": 0.5, "B300": 0.15, "Rubin": 0.0},
+      "2026": {"H100": 0.0, "H200": 0.0, "B200": 0.4, "B300": 0.4, "Rubin": 0.2}
+    },
+    "hbm_supply_params": {
+      "_note": "HBM 供给模型参数, 来源: 行业晶圆产能估算",
+      "base_supply_2024_m_gb": 450,
+      "supply_growth": {"2024": 0.0, "2025": 0.45, "2026": 0.50},
+      "non_nvidia_factor": 1.30
+    }
+  },
+  "downstream_demand": {
+    "_note": "存储芯片下游需求终端拆分，数据来源 TrendForce/IDC/Gartner 公开摘要",
+    "_last_updated": "2026-07-09",
+    "dram_demand_split": {
+      "_note": "DRAM 终端需求占比 (%)",
+      "server_data_center": {
+        "share_pct": 42,
+        "yoy_growth_pct": 35,
+        "driver": "AI HBM+DDR5, HBM已占DRAM产值41%"
+      },
+      "pc_notebook": {
+        "share_pct": 17,
+        "yoy_growth_pct": -3,
+        "driver": "DDR5渗透高但PC出货疲软，高价抑制消费"
+      },
+      "smartphone_mobile": {
+        "share_pct": 25,
+        "yoy_growth_pct": 5,
+        "driver": "旗舰机LPDDR5X 16GB+，但价格压力抑制需求"
+      },
+      "automotive": {
+        "share_pct": 8,
+        "yoy_growth_pct": 20,
+        "driver": "ADAS/自动驾驶L3+，智能座舱"
+      },
+      "industrial_other": {
+        "share_pct": 8,
+        "yoy_growth_pct": 2,
+        "driver": "IoT温和复苏，边缘AI增量"
+      }
+    },
+    "nand_demand_split": {
+      "_note": "NAND 终端需求占比 (%)",
+      "server_data_center": {
+        "share_pct": 35,
+        "yoy_growth_pct": 40,
+        "driver": "AI训练数据+企业级SSD 30TB+，需求暴增"
+      },
+      "pc_notebook": {
+        "share_pct": 20,
+        "yoy_growth_pct": -5,
+        "driver": "PCIe 5.0 SSD，消费需求被高价挤压"
+      },
+      "smartphone_mobile": {
+        "share_pct": 30,
+        "yoy_growth_pct": 3,
+        "driver": "UFS 4.0旗舰机，但OEM被迫降容量控成本"
+      },
+      "automotive": {
+        "share_pct": 7,
+        "yoy_growth_pct": 25,
+        "driver": "自动驾驶数据记录+IVI大容量存储"
+      },
+      "industrial_other": {
+        "share_pct": 8,
+        "yoy_growth_pct": 5,
+        "driver": "QLC SSD替代HDD，游戏机/消费电子"
+      }
+    },
+    "hbm_demand_split": {
+      "_note": "HBM 需求完全由 AI GPU 驱动，按应用场景拆分",
+      "ai_training": {
+        "share_pct": 55,
+        "note": "大模型训练，每代GPU HBM容量翻倍"
+      },
+      "ai_inference": {
+        "share_pct": 30,
+        "note": "推理需求快速增长，长上下文+多模态驱动"
+      },
+      "hpc_scientific": {
+        "share_pct": 10,
+        "note": "超算/科研，相对稳定"
+      },
+      "other": {
+        "share_pct": 5,
+        "note": "FPGA加速卡、网络设备"
+      }
+    }
+  },
+  "company_profiles": {
+    "_note": "各公司业务结构+技术定位, 用于个性化下游/技术分析",
+    "_last_updated": "2026-07-09",
+    "MU": {
+      "name": "Micron Technology",
+      "revenue_mix": {"dram": 0.70, "nand": 0.25, "hbm": 0.05},
+      "hbm_tier": "主要供应商",
+      "dram_node": "1b nm→1c nm",
+      "nand_node": "276L→400L+",
+      "description": "全球第三大 DRAM 厂商, 第二大 HBM 供应商(份额~15%), HBM3e 12Hi 量产中"
+    },
+    "WDC": {
+      "name": "Western Digital",
+      "revenue_mix": {"dram": 0.0, "nand": 0.55, "hbm": 0.0, "hdd": 0.45},
+      "hbm_tier": "不涉及",
+      "dram_node": "不涉及",
+      "nand_node": "BiCS 218L→300L+(与铠侠合作)",
+      "description": "全球领先的 NAND Flash + HDD 厂商, 不涉及 DRAM/HBM, AI 需求通过企业级 SSD 间接受益"
+    },
+    "STX": {
+      "name": "Seagate Technology",
+      "revenue_mix": {"dram": 0.0, "nand": 0.05, "hbm": 0.0, "hdd": 0.95},
+      "hbm_tier": "不涉及",
+      "dram_node": "不涉及",
+      "nand_node": "少量NAND(消费级SSD)",
+      "description": "全球最大 HDD 厂商(HAMR技术), 存储芯片暴露度极低, AI 需求通过数据中心 HDD 间接受益"
+    },
+    "SNDK": {
+      "name": "SanDisk Corporation",
+      "revenue_mix": {"dram": 0.0, "nand": 0.90, "hbm": 0.0, "hdd": 0.0, "other": 0.10},
+      "hbm_tier": "不涉及",
+      "dram_node": "不涉及",
+      "nand_node": "BiCS 218L→300L+(与铠侠合作, 从WDC分拆)",
+      "description": "纯 NAND Flash 厂商(2026年从WDC分拆), 专注消费级+企业级SSD/存储卡, 无DRAM/HBM, AI需求通过企业级SSD受益"
+    }
+  }
+}
