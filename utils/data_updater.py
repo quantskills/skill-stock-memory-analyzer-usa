@@ -114,8 +114,8 @@ def update_dram_price(quarters: dict) -> bool:
     for q, val in quarters.items():
         merged[q] = float(val)
 
-    # 按季度排序，只保留最近10个
-    sorted_qs = sorted(merged.keys(), reverse=True)[:10]
+    # 按季度排序，保留最近20个（回测需要更长历史）
+    sorted_qs = sorted(merged.keys(), reverse=True)[:20]
 
     new_section = dict(meta_keys)
     for q in reversed(sorted_qs):
@@ -146,7 +146,7 @@ def update_nand_price(quarters: dict) -> bool:
     for q, val in quarters.items():
         merged[q] = float(val)
 
-    sorted_qs = sorted(merged.keys(), reverse=True)[:10]
+    sorted_qs = sorted(merged.keys(), reverse=True)[:20]
 
     new_section = dict(meta_keys)
     for q in reversed(sorted_qs):

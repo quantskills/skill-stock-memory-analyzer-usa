@@ -34,6 +34,7 @@ from utils.fetcher import (
     fetch_recommendation
 )
 from utils.data_updater import get_data_freshness
+from utils.backtester import run_backtest
 from utils.indicators import calc_technicals
 from utils.memory_analyzer import (
     analyze_inventory_cycle, analyze_memory_price_cycle,
@@ -315,7 +316,11 @@ def analyze_single(ticker: str, period: str, output_path: str = None,
     )
     print(f"       综合评分: {memory_assessment.get('composite_score')}/100 ({memory_assessment.get('rating')})")
 
-    # 6. 生成报告 (使用数据最新日期，而非当天日期)
+    # 6. 回测（可选）
+    backtest_result = None
+    backtest_result = run_backtest(ticker, price_df, fin, industry_data)
+
+    # 7. 生成报告 (使用数据最新日期，而非当天日期)
     print("[6/6] 生成 HTML 报告...")
     data_latest_date = price_df.index[-1].strftime("%Y-%m-%d") if hasattr(price_df.index[-1], 'strftime') else str(price_df.index[-1])[:10]
     gen_date = datetime.now().strftime("%Y-%m-%d")
@@ -343,6 +348,7 @@ def analyze_single(ticker: str, period: str, output_path: str = None,
         tech_position=tech_position,
         data_freshness=freshness,
         hbm_exposure=hbm_exposure,
+        backtest_result=backtest_result,
     )
 
     # 保存

@@ -57,7 +57,8 @@ def build_report(ticker: str, company_name: str, report_date: str,
                  end_market: dict = None,
                  tech_position: dict = None,
                  data_freshness: dict = None,
-                 hbm_exposure: dict = None) -> str:
+                 hbm_exposure: dict = None,
+                 backtest_result: dict = None) -> str:
     """
     生成完整 HTML 报告
 
@@ -99,7 +100,11 @@ def build_report(ticker: str, company_name: str, report_date: str,
                                        insider_trades, shareholder_reports, peers, capex_analysis,
                                        hbm_demand, end_market, tech_position, ticker) + '</div>')
 
-    # 8. HTML 尾部
+    # 8. 回测结果
+    if backtest_result and "error" not in backtest_result:
+        sections.append(_fig_backtest_results(backtest_result))
+
+    # 9. HTML 尾部
     sections.append(_html_footer())
 
     return "\n".join(sections)
@@ -287,6 +292,7 @@ def _html_head(company_name: str, ticker: str, report_date: str) -> str:
         <a href="#sec-events">📋 财务事件/内部人/股东/评级</a>
         <div class="toc-group">评估</div>
         <a href="#sec-assessment">📋 综合评估</a>
+        <a href="#sec-backtest">📈 历史回测</a>
     </nav>"""
     return f"<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>{ticker} 存储芯片深度分析报告</title>\n{css}\n</head>\n<body>\n{toc}"
 
@@ -2441,6 +2447,156 @@ def _fig_recommendation(rec: dict) -> str:
     html_parts.append("</div>")
 
     return f"<div class='plot-container'>{''.join(html_parts)}</div>"
+
+
+def _fig_backtest_results(bt: dict) -> str:
+    """回测结果可视化"""
+    points = bt.get("points", [])
+    ic_3m = bt.get("ic_3m")
+    ic_6m = bt.get("ic_6m")
+    ic_12m = bt.get("ic_12m")
+    ir_val = bt.get("ir")
+    tier_3m = bt.get("tier_3m", [])
+    high_wr = bt.get("high_win_rate")
+    strategy_cum = bt.get("strategy_cum_pct", 0)
+    bh_cum = bt.get("bh_cum_pct", 0)
+
+    html = []
+
+    # --- KPI 卡片 ---
+    ic_color_3m = "#4caf50" if (ic_3m and ic_3m > 0.1) else ("#ff9800" if (ic_3m and ic_3m > 0) else "#f44336")
+    ic_color_6m = "#4caf50" if (ic_6m and ic_6m > 0.1) else ("#ff9800" if (ic_6m and ic_6m > 0) else "#f44336")
+    ic_color_12m = "#4caf50" if (ic_12m and ic_12m > 0.1) else ("#ff9800" if (ic_12m and ic_12m > 0) else "#f44336")
+    ir_color = "#4caf50" if (ir_val and ir_val > 0.3) else ("#ff9800" if (ir_val and ir_val > 0) else "#f44336")
+    strategy_color = "#4caf50" if strategy_cum > bh_cum else "#f44336"
+
+    html.append(f"""
+    <div class="section-title" id="sec-backtest">📈 历史回测</div>
+    <div style="color:#8899aa; font-size:0.8rem; margin-bottom:12px;">
+        基于 panda_data 历史行情+财务数据的简易回测 | 回测区间: {bt.get('date_range','')} | 共 {bt['n_points']} 个季度
+    </div>
+    <div style='display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;'>
+        <div style='flex:1; min-width:130px; background:#1a2332; border-radius:8px; padding:14px; text-align:center;'>
+            <div style='color:#8899aa; font-size:0.7rem;'>IC (3月)</div>
+            <div style='font-size:1.5rem; font-weight:700; color:{ic_color_3m};'>{ic_3m if ic_3m else 'N/A'}</div>
+            <div style='font-size:0.7rem; color:#8899aa;'>{'强正相关' if (ic_3m and ic_3m>0.15) else ('正相关' if (ic_3m and ic_3m>0) else '负相关') if ic_3m else '样本不足'}</div>
+        </div>
+        <div style='flex:1; min-width:130px; background:#1a2332; border-radius:8px; padding:14px; text-align:center;'>
+            <div style='color:#8899aa; font-size:0.7rem;'>IC (6月)</div>
+            <div style='font-size:1.5rem; font-weight:700; color:{ic_color_6m};'>{ic_6m if ic_6m else 'N/A'}</div>
+            <div style='font-size:0.7rem; color:#8899aa;'>{'强正相关' if (ic_6m and ic_6m>0.15) else ('正相关' if (ic_6m and ic_6m>0) else '负相关') if ic_6m else '样本不足'}</div>
+        </div>
+        <div style='flex:1; min-width:130px; background:#1a2332; border-radius:8px; padding:14px; text-align:center;'>
+            <div style='color:#8899aa; font-size:0.7rem;'>IC (12月)</div>
+            <div style='font-size:1.5rem; font-weight:700; color:{ic_color_12m};'>{ic_12m if ic_12m else 'N/A'}</div>
+            <div style='font-size:0.7rem; color:#8899aa;'>{'强正相关' if (ic_12m and ic_12m>0.15) else ('正相关' if (ic_12m and ic_12m>0) else '负相关') if ic_12m else '样本不足'}</div>
+        </div>
+        <div style='flex:1; min-width:130px; background:#1a2332; border-radius:8px; padding:14px; text-align:center;'>
+            <div style='color:#8899aa; font-size:0.7rem;'>IR (信息比率)</div>
+            <div style='font-size:1.5rem; font-weight:700; color:{ir_color};'>{ir_val if ir_val else 'N/A'}</div>
+            <div style='font-size:0.7rem; color:#8899aa;'>{'优秀' if (ir_val and ir_val>0.5) else ('良好' if (ir_val and ir_val>0.2) else '一般') if ir_val else '样本不足'}</div>
+        </div>
+        <div style='flex:1; min-width:130px; background:#1a2332; border-radius:8px; padding:14px; text-align:center;'>
+            <div style='color:#8899aa; font-size:0.7rem;'>高分(≥60)胜率</div>
+            <div style='font-size:1.5rem; font-weight:700; color:{'#4caf50' if (high_wr and high_wr>50) else '#f44336'}'>{high_wr if high_wr else 'N/A'}%</div>
+            <div style='font-size:0.7rem; color:#8899aa;'>评分≥60后3月正收益概率</div>
+        </div>
+        <div style='flex:1; min-width:130px; background:#1a2332; border-radius:8px; padding:14px; text-align:center;'>
+            <div style='color:#8899aa; font-size:0.7rem;'>策略 vs 持有</div>
+            <div style='font-size:1.2rem; font-weight:700;'>策略 <span style='color:{strategy_color};'>+{strategy_cum}%</span></div>
+            <div style='font-size:0.8rem; color:#8899aa;'>买入持有 +{bh_cum}%</div>
+        </div>
+    </div>""")
+
+    # --- 分层收益柱状图 ---
+    if tier_3m:
+        ranges_3m = [t["range"] for t in tier_3m]
+        rets_3m = [t["avg_fwd_return"] or 0 for t in tier_3m]
+        counts_3m = [t["count"] for t in tier_3m]
+        colors_3m = ["#f44336" if r < 0 else "#4caf50" for r in rets_3m]
+
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            x=ranges_3m, y=rets_3m,
+            marker_color=colors_3m,
+            text=[f"{r:+.1f}%<br>(n={c})" for r, c in zip(rets_3m, counts_3m)],
+            textposition="outside",
+            textfont=dict(size=11, color="#e1e8ed"),
+            name="3月后续收益"
+        ))
+        fig.add_hline(y=0, line_color="#555", line_width=1)
+        fig.update_layout(
+            template="plotly_dark", height=350,
+            paper_bgcolor="#1a2332", plot_bgcolor="#1a2332",
+            margin=dict(l=20, r=20, t=40, b=20),
+            title="评分分层 — 后续3月平均收益",
+            title_font=dict(size=14, color="#90caf9"),
+            yaxis=dict(title="平均收益 (%)", gridcolor="#2a3a4a", tickformat="+.1f"),
+            xaxis=dict(title="评分区间", gridcolor="#2a3a4a"),
+            showlegend=False
+        )
+        html.append(fig.to_html(full_html=False, include_plotlyjs=False, config={
+            'displaylogo': False, 'displayModeBar': False
+        }))
+
+    # --- 散点图: 评分 vs 3月收益 ---
+    valid = [(p["score"], p["fwd_3m_pct"], p["quarter"]) for p in points if p["fwd_3m_pct"] is not None]
+    if len(valid) >= 4:
+        xs = [v[0] for v in valid]
+        ys = [v[1] for v in valid]
+        labels = [v[2] for v in valid]
+
+        fig2 = go.Figure()
+        fig2.add_trace(go.Scatter(
+            x=xs, y=ys, mode="markers+text",
+            marker=dict(size=12, color=["#4caf50" if y > 0 else "#f44336" for y in ys],
+                       line=dict(color="#fff", width=1)),
+            text=labels, textposition="top center",
+            textfont=dict(size=9, color="#8899aa"),
+            hovertemplate="%{text}<br>评分: %{x}<br>3月收益: %{y:+.1f}%<extra></extra>",
+            name="评分vs收益"
+        ))
+        # 添加趋势线
+        if len(xs) >= 3:
+            z = np.polyfit(xs, ys, 1)
+            p_line = np.poly1d(z)
+            x_line = [min(xs), max(xs)]
+            y_line = [p_line(x_line[0]), p_line(x_line[1])]
+            fig2.add_trace(go.Scatter(
+                x=x_line, y=y_line, mode="lines",
+                line=dict(color="#ff9800", width=2, dash="dash"),
+                name=f"趋势 (IC={ic_3m})"
+            ))
+
+        fig2.add_hline(y=0, line_color="#555", line_width=1)
+        fig2.update_layout(
+            template="plotly_dark", height=380,
+            paper_bgcolor="#1a2332", plot_bgcolor="#1a2332",
+            margin=dict(l=20, r=20, t=60, b=30),
+            title="评分 vs 后续3月收益 散点图",
+            title_font=dict(size=14, color="#90caf9"),
+            yaxis=dict(title="3月收益 (%)", gridcolor="#2a3a4a", tickformat="+.0f"),
+            xaxis=dict(title="简化评分 (0-100)", gridcolor="#2a3a4a"),
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02)
+        )
+        html.append(fig2.to_html(full_html=False, include_plotlyjs=False, config={
+            'displaylogo': False, 'displayModeBar': False
+        }))
+
+    # --- 评分方法说明 ---
+    html.append(
+        "<div style='background:#1a2332; border:1px solid #2a3a4a; border-radius:8px; padding:14px; "
+        "margin-top:12px; font-size:0.8rem; color:#8899aa;'>"
+        "<div style='color:#90caf9; font-weight:700; margin-bottom:6px;'>📐 回测评分方法</div>"
+        "<b>回测评分</b> = 技术面(14%) + 库存周期(18%) + 价格周期(18%) + 🆕HBM/AI需求(13%) + 毛利率(14%) + CapEx(11%) + 财务(12%)<br>"
+        "使用 panda_data 历史行情+财务 + DRAM/NAND合约价(2022-Q1) + NVDA营收(2024-Q1起)。回测从有HBM数据的2024年开始。<br>"
+        "<b>IC(信息系数)</b> = 评分与后续实际收益的相关系数，正值表示评分有正向预测能力。<br>"
+        "<b>策略</b> = 评分≥60买入/持有，<40空仓，之间半仓。"
+        "</div>"
+    )
+
+    return f"<div class='plot-container' style='margin-top:24px;'>{''.join(html)}</div>"
 
 
 def _html_footer() -> str:
