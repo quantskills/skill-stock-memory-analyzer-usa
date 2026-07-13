@@ -1,6 +1,6 @@
 ---
 name: stock-memory-analyzer
-description: 美股存储芯片板块深度分析，集成库存周期/NAND-DRAM价格/HBM供需量化/下游需求拆分/技术节点路线图/行业对标/10维度公司差异化综合评分，生成带侧边目录导航的交互式 HTML 可视化报告
+description: 对 MU、美光、WDC、STX、SNDK 等美股存储芯片股票进行深度分析，整合 panda_data 实时行情与财务、DRAM/NAND/HBM 供需、库存周期、技术节点、同业对标及综合评分，并生成交互式 HTML 报告。用户提到存储芯片、内存、NAND、DRAM、HBM、存储周期或上述股票时应使用。首次运行前，先向用户说明 panda_data 账号、Python 依赖和网络权限要求，并执行环境预检；缺少账号或依赖时先给出安全、可执行的配置指引，再运行分析。
 triggers:
   - 分析存储芯片股票
   - 分析美光/MU/西部数据/WDC/希捷/STX/SanDisk/SNDK 股票
@@ -15,12 +15,46 @@ triggers:
 
 ---
 
+## 首次使用：先完成环境预检
+
+在抓取任何股票数据前，先运行：
+
+```bash
+cd D:\PandaAi_skills\.claude\skills\stock-memory-analyzer
+python analyze.py --check-env
+```
+
+预检会检查 `panda_data`、`pandas`、`numpy`、`plotly`，以及是否已提供 panda_data 凭据。若缺少依赖，先向用户说明原因并征得安装许可，再执行：
+
+```bash
+python -m pip install -r requirements.txt
+# 或使用显式安装开关
+python analyze.py --install-deps --check-env
+```
+
+完整分析必须使用 panda_data 账号。优先让用户通过环境变量提供凭据，避免把密码暴露在命令历史、进程列表或报告中：
+
+```powershell
+$env:PANDA_DATA_USERNAME = '86xxxxxxxxxxx'
+$env:PANDA_DATA_PASSWORD = 'your_password'
+python analyze.py --ticker MU
+```
+
+仅当用户明确同意时，才可使用 `--username` 和 `--password` 参数。不要在回复、日志或报告中回显密码；展示账号时须脱敏。
+
+运行环境还需要允许 Python 访问 panda_data API。若遇到 `WinError 10013`、socket/network error 或企业防火墙拦截，说明是网络权限问题，提示用户授予网络访问后重试，不要直接判定为密码错误。生成的报告通过 `cdn.plot.ly` 加载图表；离线时文字和表格仍可查看。
+
+对于调用该 skill 的代理：如果预检发现账号或依赖缺失，先停止分析并给出上述步骤；只有在用户完成配置或明确授权安装/授予网络权限后，才继续。
+
+---
+
 ## 项目结构
 
 ```
 stock-memory-analyzer/
 ├── SKILL.md                  # 本文件
 ├── analyze.py                # 主入口：编排分析流程
+├── requirements.txt           # Python 运行依赖
 ├── config/
 │   └── industry_data.json   # 行业基准数据 + 公司业务结构（WebSearch 动态更新）
 ├── utils/
@@ -28,7 +62,8 @@ stock-memory-analyzer/
 │   ├── indicators.py        # 技术指标：RSI/MACD/布林带/OBV/ATR/VaR
 │   ├── memory_analyzer.py   # 存储行业分析：库存/价格/HBM/下游/技术节点/公司差异化评分
 │   ├── report_builder.py    # HTML 报告生成：Plotly 可视化 + CSS + 侧边目录导航
-│   └── data_updater.py      # 数据更新工具：CLI 写入 industry_data.json
+│   ├── data_updater.py      # 数据更新工具：CLI 写入 industry_data.json
+│   └── preflight.py         # 账号、依赖和网络要求预检
 └── output/                   # 报告输出目录
 ```
 
@@ -80,19 +115,19 @@ python utils/data_updater.py freshness
 | SanDisk | SNDK | 纯 NAND 厂商(90%)，从 WDC 分拆，不涉及 DRAM/HBM |
 | SK 海力士 | 000660.KS | 韩股，panda_data 支持有限 |
 
-### Step 2: 确认 panda_data 账号
+### Step 2: 确认 panda_data 账号与运行权限
 
-从对话上下文获取，或环境变量：
-```bash
-set PANDA_DATA_USERNAME=86138xxxxxxx
-set PANDA_DATA_PASSWORD=your_password
-```
+先执行 `python analyze.py --check-env`。若未提供账号，向用户索取 panda_data 用户名和密码，或指导其设置 `PANDA_DATA_USERNAME` / `PANDA_DATA_PASSWORD`；不要要求用户把凭据写入源码或配置文件。若当前环境阻止网络访问，先获得网络权限再登录。
 
 ### Step 3: 运行分析
 
 ```bash
+# 凭据已通过环境变量设置时（推荐）
+python analyze.py --ticker MU
+python analyze.py --ticker MU,WDC,STX
+
+# 仅在用户明确同意将凭据传给命令行时使用
 python analyze.py --ticker MU --username 86xxx --password xxx
-python analyze.py --ticker MU,WDC,STX --username 86xxx --password xxx
 ```
 
 ### Step 4: 查看报告
@@ -231,6 +266,8 @@ NVDA 季报 Compute 营收 ($B)           ← 公开审计数据 ✅
 ## CLI 命令速查
 
 ```bash
+python analyze.py --check-env                         # 首次使用：检查账号和依赖
+python analyze.py --install-deps --check-env          # 明确同意后安装缺失依赖
 python utils/data_updater.py freshness              # 检查所有模块新鲜度
 python utils/data_updater.py dram-price --data '{}'  # DRAM 价格
 python utils/data_updater.py nand-price --data '{}'  # NAND 价格
@@ -242,7 +279,8 @@ python utils/data_updater.py downstream --data '{}'  # 下游需求
 python utils/data_updater.py capex --ticker MU --data '{}'  # CapEx
 python utils/data_updater.py tech-nodes --data '{}'  # 技术节点
 
-python analyze.py --ticker MU --username 86xxx --password xxx  # 运行分析
+python analyze.py --ticker MU                         # 使用环境变量凭据运行分析
+python analyze.py --ticker MU --username 86xxx --password xxx  # 仅在明确同意时使用命令行凭据
 ```
 
 ---

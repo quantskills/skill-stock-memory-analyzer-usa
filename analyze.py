@@ -13,7 +13,6 @@ import os
 import sys
 from datetime import datetime
 
-import pandas as pd
 
 # Fix Windows console encoding
 if sys.stdout.encoding != 'utf-8':
@@ -25,24 +24,42 @@ if sys.stdout.encoding != 'utf-8':
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, ROOT_DIR)
 
-from utils.fetcher import (
-    init_token, fetch_stock_data, fetch_fundamentals,
-    fetch_institutional, fetch_analyst, fetch_insider_trades,
-    load_industry_data, fetch_peer_comparison, fetch_benchmark_data,
-    fetch_financial_events, fetch_ir_events,
-    fetch_insider_transactions, fetch_shareholder_reports,
-    fetch_recommendation
-)
-from utils.data_updater import get_data_freshness
-from utils.backtester import run_backtest
-from utils.indicators import calc_technicals
-from utils.memory_analyzer import (
-    analyze_inventory_cycle, analyze_memory_price_cycle,
-    analyze_hbm_exposure, analyze_technology_position,
-    analyze_capex_trend, generate_memory_assessment,
-    analyze_hbm_gpu_demand, analyze_end_market_demand
-)
-from utils.report_builder import build_report
+from utils.preflight import run_preflight
+
+
+def load_runtime_dependencies() -> None:
+    """Load optional dependencies only after the preflight has passed."""
+    global pd
+    global init_token, fetch_stock_data, fetch_fundamentals
+    global fetch_institutional, fetch_analyst, fetch_insider_trades
+    global load_industry_data, fetch_peer_comparison, fetch_benchmark_data
+    global fetch_financial_events, fetch_ir_events
+    global fetch_insider_transactions, fetch_shareholder_reports
+    global fetch_recommendation, get_data_freshness, run_backtest, calc_technicals
+    global analyze_inventory_cycle, analyze_memory_price_cycle
+    global analyze_hbm_exposure, analyze_technology_position
+    global analyze_capex_trend, generate_memory_assessment
+    global analyze_hbm_gpu_demand, analyze_end_market_demand, build_report
+
+    import pandas as pd
+    from utils.fetcher import (
+        init_token, fetch_stock_data, fetch_fundamentals,
+        fetch_institutional, fetch_analyst, fetch_insider_trades,
+        load_industry_data, fetch_peer_comparison, fetch_benchmark_data,
+        fetch_financial_events, fetch_ir_events,
+        fetch_insider_transactions, fetch_shareholder_reports,
+        fetch_recommendation,
+    )
+    from utils.data_updater import get_data_freshness
+    from utils.backtester import run_backtest
+    from utils.indicators import calc_technicals
+    from utils.memory_analyzer import (
+        analyze_inventory_cycle, analyze_memory_price_cycle,
+        analyze_hbm_exposure, analyze_technology_position,
+        analyze_capex_trend, generate_memory_assessment,
+        analyze_hbm_gpu_demand, analyze_end_market_demand,
+    )
+    from utils.report_builder import build_report
 
 
 def _safe_float(val, default=None):
@@ -376,12 +393,16 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 示例:
+  python analyze.py --check-env
+  python analyze.py --install-deps --check-env
+  # 推荐：先设置 PANDA_DATA_USERNAME / PANDA_DATA_PASSWORD
+  python analyze.py --ticker MU
   python analyze.py --ticker MU --username 86xxx --password xxx
   python analyze.py --ticker MU,WDC,STX --username 86xxx --password xxx
   python analyze.py --ticker MU -u 86xxx -p xxx --period 5y
         """
     )
-    parser.add_argument("--ticker", "-t", type=str, required=True,
+    parser.add_argument("--ticker", "-t", type=str, default=None,
                         help="股票代码，多个用逗号分隔 (如 MU,WDC,STX)")
     parser.add_argument("--username", "-u", type=str, default=None,
                         help="panda_data 账号 (86手机号)")
@@ -391,12 +412,31 @@ def main():
                         help="历史数据时间跨度 (1y/2y/5y/10y/max)，默认5y")
     parser.add_argument("--output", "-o", type=str, default=None,
                         help="自定义输出路径")
+    parser.add_argument("--check-env", action="store_true",
+                        help="检查 panda_data 账号、Python 依赖与网络要求后退出")
+    parser.add_argument("--install-deps", action="store_true",
+                        help="显式同意通过 requirements.txt 安装缺失依赖")
 
     args = parser.parse_args()
 
     # 也可以从环境变量读取
     username = args.username or os.environ.get("PANDA_DATA_USERNAME")
     password = args.password or os.environ.get("PANDA_DATA_PASSWORD")
+
+    preflight_ok = run_preflight(
+        username,
+        password,
+        install_deps=args.install_deps,
+        check_only=args.check_env,
+    )
+    if args.check_env:
+        raise SystemExit(0 if preflight_ok else 1)
+    if not preflight_ok:
+        raise SystemExit(1)
+    if not args.ticker:
+        parser.error("--ticker is required unless --check-env is used")
+
+    load_runtime_dependencies()
 
     tickers = [t.strip() for t in args.ticker.split(",")]
 

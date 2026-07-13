@@ -34,19 +34,31 @@ def init_token(username: str, password: str) -> bool:
     Returns:
         True if connected successfully
     """
-    import panda_data
+    try:
+        import panda_data
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "缺少 panda_data 客户端。请在 skill 根目录运行："
+            "python -m pip install -r requirements.txt"
+        ) from exc
 
     # 自动补全 86 前缀
     username = str(username).strip()
     if not username.startswith("86"):
         username = "86" + username
 
-    print(f"  [panda_data] 正在登录 (账号: {username})...")
+    masked_username = f"{username[:2]}***{username[-4:]}" if len(username) > 6 else "***"
+    print(f"  [panda_data] 正在登录 (账号: {masked_username})...")
 
     try:
         panda_data.init_token(username=username, password=password)
     except Exception as e:
-        print(f"  [panda_data] 登录失败: {e}")
+        error_text = str(e)
+        print(f"  [panda_data] 登录失败: {error_text}")
+        if "10013" in error_text or "access socket" in error_text.lower():
+            print("  [panda_data] 提示：当前环境阻止网络连接。请授予 Python 网络权限后重试。")
+        elif "401" in error_text or "403" in error_text:
+            print("  [panda_data] 提示：请确认 panda_data 用户名、密码和账号权限。")
         return False
 
     # 验证连通性：尝试获取美股交易日历

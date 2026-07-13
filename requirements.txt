@@ -1,0 +1,4 @@
+panda_data>=0.0.12
+pandas>=2.0
+numpy>=1.22,<2.0
+plotly>=5.0
