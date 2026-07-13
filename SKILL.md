@@ -134,6 +134,8 @@ python analyze.py --ticker MU --username 86xxx --password xxx
 
 `output/` 目录下 HTML 文件，浏览器打开即可。左侧固定目录导航，点击可跳转到任意模块。
 
+完成后只向用户交付 HTML 报告链接。不要引用运行日志中的 `memory_assessment.composite_score`，它是存储周期内部评分；页面“综合评估”区域显示的 10 维 `final_score` 才是最终综合评分和唯一应对外陈述的评分。
+
 ---
 
 ## 报告结构 & 分析维度

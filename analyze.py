@@ -325,13 +325,12 @@ def analyze_single(ticker: str, period: str, output_path: str = None,
     else:
         print(f"       下游需求: 数据不可用")
 
-    # 综合评分 (所有模块分析完成后)
+    # 存储周期内部评分：仅作为 HTML 最终综合评分的一个输入，不单独对用户展示。
     memory_assessment = generate_memory_assessment(
         inv_analysis, price_cycle, capex_analysis,
         hbm_demand, end_market, tech_position,
         industry_data, ticker
     )
-    print(f"       综合评分: {memory_assessment.get('composite_score')}/100 ({memory_assessment.get('rating')})")
 
     # 6. 回测（可选）
     backtest_result = None
