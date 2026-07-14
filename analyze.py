@@ -93,7 +93,6 @@ def analyze_single(ticker: str, period: str, output_path: str = None,
         if not ok:
             raise RuntimeError(
                 "panda_data 登录失败，请检查账号密码。\n"
-                f"   账号: 86{str(username).replace('86', '')}\n"
                 "   如未注册，请先注册 panda_data 账号"
             )
     else:
@@ -446,11 +445,10 @@ def main():
             filepath = analyze_single(t, args.period, args.output if len(tickers) == 1 else None,
                                        username, password)
             results.append((t, filepath, "success"))
-        except Exception as e:
-            print(f"\n[ERROR] 分析 {t} 时出错: {e}")
-            import traceback
-            traceback.print_exc()
-            results.append((t, None, str(e)))
+        except Exception:
+            # 不打印异常原文或堆栈，避免第三方异常意外携带认证信息。
+            print(f"\n[ERROR] 分析 {t} 时发生运行错误。")
+            results.append((t, None, "运行错误"))
 
     # 总结
     print(f"\n{'=' * 60}")

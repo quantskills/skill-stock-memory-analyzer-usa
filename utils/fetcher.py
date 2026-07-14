@@ -47,14 +47,14 @@ def init_token(username: str, password: str) -> bool:
     if not username.startswith("86"):
         username = "86" + username
 
-    masked_username = f"{username[:2]}***{username[-4:]}" if len(username) > 6 else "***"
-    print(f"  [panda_data] 正在登录 (账号: {masked_username})...")
+    print("  [panda_data] 正在登录...")
 
     try:
         panda_data.init_token(username=username, password=password)
     except Exception as e:
+        # 不输出第三方异常原文，避免其中意外包含账号、token 或密码。
         error_text = str(e)
-        print(f"  [panda_data] 登录失败: {error_text}")
+        print("  [panda_data] 登录失败。")
         if "10013" in error_text or "access socket" in error_text.lower():
             print("  [panda_data] 提示：当前环境阻止网络连接。请授予 Python 网络权限后重试。")
         elif "401" in error_text or "403" in error_text:
@@ -74,9 +74,9 @@ def init_token(username: str, password: str) -> bool:
         else:
             print("  [panda_data] 连接成功，但未获取到交易日信息")
             return True
-    except Exception as e:
+    except Exception:
         # 交易日历接口可能不可用，但不影响数据获取
-        print(f"  [panda_data] 连接成功 (交易日历接口: {e})")
+        print("  [panda_data] 连接成功（交易日历状态不可用）")
         return True
 
 
@@ -592,8 +592,9 @@ def fetch_peer_comparison(tickers: list) -> dict:
                 pass
 
             result[t] = entry
-        except Exception as e:
-            result[t] = {"error": str(e), "name": t}
+        except Exception:
+            # 对标接口的异常文本不进入报告，避免第三方错误携带敏感信息。
+            result[t] = {"error": "数据获取失败", "name": t}
 
     return result
 
