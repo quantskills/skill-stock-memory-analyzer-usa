@@ -1,314 +1,188 @@
 ---
 name: stock-memory-analyzer
-description: 对 MU、美光、WDC、STX、SNDK 等美股存储芯片股票进行深度分析，整合 panda_data 实时行情与财务、DRAM/NAND/HBM 供需、库存周期、技术节点、同业对标及综合评分，并生成交互式 HTML 报告。用户提到存储芯片、内存、NAND、DRAM、HBM、存储周期或上述股票时应使用。首次运行前，先向用户说明 panda_data 账号、Python 依赖和网络权限要求，并执行环境预检；缺少账号或依赖时先给出安全、可执行的配置指引，再运行分析。
-triggers:
-  - 分析存储芯片股票
-  - 分析美光/MU/西部数据/WDC/希捷/STX/SanDisk/SNDK 股票
-  - 涉及NAND/DRAM/HBM/存储周期分析
-  - 分析内存/存储板块
-  - 生成存储芯片报告
+description: 对 MU、美光、WDC、STX、SNDK 等美股存储芯片公司开展可追溯的研究分析，结合 panda_data 行情与财务数据、DRAM/NAND/HBM 供需、库存、CapEx、技术节点和同业对标，生成交互式 HTML 研究报告。当用户提到存储芯片、内存、NAND、DRAM、HBM、存储周期，或要求研究上述公司时使用；即使用户只要求比较这些公司、核验行业数据或生成存储行业报告，也应使用。本技能仅用于研究与教育，不提供买卖建议、收益承诺或个性化投资建议。
+license: GPL-3.0-only
+metadata:
+  organization: QuantSkills
+  organization_url: https://github.com/quantskills
+  repository: skill-stock-memory-analyzer-usa
+  repository_url: https://github.com/quantskills/skill-stock-memory-analyzer-usa
+  project_type: skill
+  collection: analysis
+  license: GPL-3.0-only
+  project_status: community_project_unreviewed
+  maintainer: repository contributors
 ---
 
-# 美股存储芯片深度分析 Skill
+# 美股存储芯片研究分析
 
-你是美股存储芯片板块的深度分析助手。整合 **panda_data 实时股票数据** + **WebSearch 动态行业数据**，覆盖 7 大分析模块 + 10 维度公司差异化评分，生成带左侧目录导航的交互式 HTML 报告。
+使用本技能研究美股存储产业链公司，输出可复核的行业与公司分析。它将可用数据分成三类：
 
----
+- `panda_data`：行情、财务、估值及公开申报衍生数据；以接口实际返回时间为准。
+- 已引用的公开行业资料：DRAM/NAND 合约价、HBM、下游需求、CapEx、技术节点等；每个关键结论须保留来源和日期。
+- 模型推算：例如 GPU ASP、HBM 供给或收入暴露度；必须明确标为估算，说明输入、假设和局限，不可写成已验证事实。
 
-## 首次使用：先完成环境预检
+项目状态：这是一个社区项目，尚未获得 QUANTSKILLS 官方认证、验证、背书或生产可用认定。
 
-在抓取任何股票数据前，先运行：
+## 研究边界
 
-```bash
+- 仅生成研究信息，不给出“买入、卖出、建仓、减仓、止损、目标价”或保证收益等指令。
+- 将评分解释为“当前数据下的研究信号”，而非投资评级、概率预测或交易信号。
+- 不把模型估算、分析师观点或历史回测当作事实或未来表现保证。
+- 不收集、不回显、不写入报告的密码、token、手机号或其他敏感信息。凭据只可通过环境变量在本地会话提供。
+- 数据缺失、冲突、过期或无法核验时，应明确写出限制；不得用行业常识补成精确数值。
+
+## 支持范围
+
+默认覆盖 `MU`、`WDC`、`STX`、`SNDK`；其他代码只有在 `panda_data` 能返回足够的行情和财务数据时才分析。对非 DRAM/HBM 公司，应降低或标记 HBM 维度的重要性，不能把行业结论直接套用为公司结论。
+
+输出为 `output/` 下的 HTML 研究报告。报告包含行情与财务概览、库存与价格周期、供需与技术节点、同业对标、数据质量提示、评分拆解与回测诊断（数据足够时）。
+
+## 首次使用：环境预检
+
+先运行：
+
+```powershell
 cd D:\PandaAi_skills\.claude\skills\stock-memory-analyzer
 python analyze.py --check-env
 ```
 
-预检会检查 `panda_data`、`pandas`、`numpy`、`plotly`，以及是否已提供 panda_data 凭据。若缺少依赖，先向用户说明原因并征得安装许可，再执行：
+预检检查 `panda_data`、`pandas`、`numpy`、`plotly`、本地凭据和网络要求。缺少 Python 依赖时，先说明缺少项并取得用户同意，再安装：
 
-```bash
+```powershell
 python -m pip install -r requirements.txt
-# 或使用显式安装开关
+# 或在用户明确同意后：
 python analyze.py --install-deps --check-env
 ```
 
-完整分析必须使用 panda_data 账号。优先让用户通过环境变量提供凭据，避免把密码暴露在命令历史、进程列表或报告中：
+使用环境变量提供凭据，避免把秘密放进命令历史、源代码或报告：
 
 ```powershell
-$env:PANDA_DATA_USERNAME = '86xxxxxxxxxxx'
+$env:PANDA_DATA_USERNAME = 'your_username'
 $env:PANDA_DATA_PASSWORD = 'your_password'
 python analyze.py --ticker MU
 ```
 
-仅当用户明确同意时，才可使用 `--username` 和 `--password` 参数。不要在回复、日志或报告中回显密码；展示账号时须脱敏。
+只有用户明确同意将凭据传入命令行时，才可使用 `--username` 和 `--password`。网络或防火墙错误应报告为访问问题，不能直接归因于密码错误。
 
-运行环境还需要允许 Python 访问 panda_data API。若遇到 `WinError 10013`、socket/network error 或企业防火墙拦截，说明是网络权限问题，提示用户授予网络访问后重试，不要直接判定为密码错误。生成的报告通过 `cdn.plot.ly` 加载图表；离线时文字和表格仍可查看。
+## 工作流程
 
-对于调用该 skill 的代理：如果预检发现账号或依赖缺失，先停止分析并给出上述步骤；只有在用户完成配置或明确授权安装/授予网络权限后，才继续。
+### 1. 确认任务与输出
 
----
+确认股票代码、比较对象、时间跨度，以及用户想回答的问题（例如库存拐点、HBM 暴露、估值对标或风险）。若用户没有指定，默认分析单一股票、使用 `5y` 历史窗口，并输出研究报告。
 
-## 项目结构
+### 2. 先检查行业数据质量
 
-```
-stock-memory-analyzer/
-├── SKILL.md                  # 本文件
-├── analyze.py                # 主入口：编排分析流程
-├── requirements.txt           # Python 运行依赖
-├── config/
-│   └── industry_data.json   # 行业基准数据 + 公司业务结构（WebSearch 动态更新）
-├── utils/
-│   ├── fetcher.py           # 数据获取：panda_data API 封装
-│   ├── indicators.py        # 技术指标：RSI/MACD/布林带/OBV/ATR/VaR
-│   ├── memory_analyzer.py   # 存储行业分析：库存/价格/HBM/下游/技术节点/公司差异化评分
-│   ├── report_builder.py    # HTML 报告生成：Plotly 可视化 + CSS + 侧边目录导航
-│   ├── data_updater.py      # 数据更新工具：CLI 写入 industry_data.json
-│   └── preflight.py         # 账号、依赖和网络要求预检
-└── output/                   # 报告输出目录
-```
-
----
-
-## 执行流程
-
-### Step 0: 获取最新行业数据（⚠️ 每次必须执行）
-
-**所有行业数据均来自 WebSearch 动态获取。** 每次分析前：
-
-#### 0.1 检查新鲜度
-```bash
-cd d:\PandaAi_skills\.claude\skills\stock-memory-analyzer
+```powershell
 python utils/data_updater.py freshness
 ```
-9 个数据模块：🟢新鲜(≤7天) / 🟡陈旧(≤30天) / 🔴过期(>30天) / ⚪未知。
 
-#### 0.2 动态更新所有模块
+把每个行业模块标记为“新鲜、陈旧、过期、缺失或未知”。任何陈旧、过期、缺失或未知的数据都必须在最终结论中可见；它不能支撑强结论或精确排名。
 
-| 数据模块 | 搜索关键词 | 更新命令 |
-|----------|-----------|----------|
-| DRAM 合约价 | `DRAM contract price QoQ TrendForce` | `python utils/data_updater.py dram-price --data '<JSON>'` |
-| NAND 合约价 | `NAND contract price QoQ TrendForce` | `python utils/data_updater.py nand-price --data '<JSON>'` |
-| HBM 市场 | `HBM market size forecast TrendForce` | `python utils/data_updater.py hbm-market --data '<JSON>'` |
-| NVDA Compute 营收 | `NVIDIA quarterly data center compute revenue FY2027` | `python utils/data_updater.py nvda-revenue --data '<JSON>'` |
-| GPU 型号占比 | `NVIDIA H100 H200 B200 B300 GPU shipment mix` | `python utils/data_updater.py gpu-mix --data '<JSON>'` |
-| HBM 供给参数 | `HBM wafer capacity supply growth SK Hynix Samsung Micron` | `python utils/data_updater.py hbm-supply --data '<JSON>'` |
-| 下游需求 | `DRAM demand by end market server PC smartphone` | `python utils/data_updater.py downstream --data '<JSON>'` |
-| CapEx 指引 | `Micron capex guidance FY2026 billions earnings call` | `python utils/data_updater.py capex --ticker MU --data '<JSON>'` |
-| 技术节点 | `DRAM 1c nm 1d nm NAND 400-layer technology node roadmap` | `python utils/data_updater.py tech-nodes --data '<JSON>'` |
+默认分析不会改写 `config/industry_data.json`。只有用户明确要求更新行业数据，并且已提供或允许获取可引用的公开来源时，才更新该文件。
 
-**搜索优先级**：① TrendForce/DRAMeXchange → ② Seeking Alpha / Tom's Hardware → ③ 公司财报
+### 3. 更新行业数据（仅在获授权时）
 
-**搜索不到则保留现有值并标注日期，WebSearch 获取不到 GPU 型号占比/HBM 供给参数时可基于行业常识估算。**
+优先使用一手资料：公司财报、IR 新闻稿、SEC 文件、产品规格和公开方法说明。行业数据可使用 TrendForce、DRAMeXchange、IDC、Gartner 等公开可访问资料；二手报道只能作为佐证。
 
-#### 0.3 AI 推算补充
-- NVDA **Compute 营收** ÷ 加权 **ASP** → GPU 出货量
-- 公司财报 **inventory/COGS** → 库存周转天数
-- 行业趋势 → 下游需求增速
+每次更新前记录以下信息，并在报告中呈现：
 
-### Step 1: 确认分析目标
+| 字段 | 要求 |
+| --- | --- |
+| 数据项 | 例如 DRAM 合约价 QoQ、HBM 市场规模或 CapEx 指引 |
+| 来源 | 发布方、标题或文件名、可访问链接 |
+| 日期 | 发布日期、数据截至日期、访问日期 |
+| 类型 | 事实、管理层指引、第三方预测或模型估算 |
+| 变换 | 单位、换算、加权或任何推导公式 |
 
-| 名称 | Ticker | 业务定位 |
-|------|--------|----------|
-| 美光 | MU | DRAM 70% + NAND 25% + HBM 5%，HBM 主要供应商(~15%份额) |
-| 西部数据 | WDC | NAND 55% + HDD 45%，不涉及 DRAM/HBM |
-| 希捷 | STX | HDD 95% + NAND 5%，存储芯片暴露极低 |
-| SanDisk | SNDK | 纯 NAND 厂商(90%)，从 WDC 分拆，不涉及 DRAM/HBM |
-| SK 海力士 | 000660.KS | 韩股，panda_data 支持有限 |
+若无法提供来源或日期，保留原值并标记“不足以更新”。模型估算必须保留输入和假设；不要把估算值与公司披露混合成单一事实。
 
-### Step 2: 确认 panda_data 账号与运行权限
+常用更新入口：
 
-先执行 `python analyze.py --check-env`。若未提供账号，向用户索取 panda_data 用户名和密码，或指导其设置 `PANDA_DATA_USERNAME` / `PANDA_DATA_PASSWORD`；不要要求用户把凭据写入源码或配置文件。若当前环境阻止网络访问，先获得网络权限再登录。
+```powershell
+python utils/data_updater.py freshness
+python utils/data_updater.py dram-price --data '{"2026-Q2": 0.0}' --source 'https://example.com/source' --as-of 2026-06-30
+python utils/data_updater.py nand-price --data '{"2026-Q2": 0.0}' --source 'https://example.com/source' --as-of 2026-06-30
+python utils/data_updater.py hbm-market --data '{}' --source 'https://example.com/source' --as-of 2026-06-30
+python utils/data_updater.py capex --ticker MU --data '{}' --source 'https://example.com/source' --as-of 2026-06-30
+python utils/data_updater.py tech-nodes --data '{"dram": [], "nand": []}' --source 'https://example.com/source' --as-of 2026-06-30
+```
 
-### Step 3: 运行分析
+命令示例中的 URL、日期和数值都只是结构示例，绝不是建议写入的数据。`--source` 与 `--as-of` 是必填项；写入前用已核验资料替换，工具会把来源、截至日期和访问日期保存到对应配置段。
 
-```bash
-# 凭据已通过环境变量设置时（推荐）
+### 4. 运行分析
+
+```powershell
 python analyze.py --ticker MU
-python analyze.py --ticker MU,WDC,STX
-
-# 仅在用户明确同意将凭据传给命令行时使用
-python analyze.py --ticker MU --username 86xxx --password xxx
+python analyze.py --ticker MU,WDC,STX --period 5y
 ```
 
-### Step 4: 查看报告
+脚本会获取可用的价格、财务、估值、公开申报衍生数据和行业配置，并生成 HTML。若某个接口失败，保留该维度为空或“不可用”；不要用未经验证的替代数据填补。
 
-`output/` 目录下 HTML 文件，浏览器打开即可。左侧固定目录导航，点击可跳转到任意模块。
+### 5. 审阅并交付报告
 
-完成后只向用户交付 HTML 报告链接。不要引用运行日志中的 `memory_assessment.composite_score`，它是存储周期内部评分；页面“综合评估”区域显示的 10 维 `final_score` 才是最终综合评分和唯一应对外陈述的评分。
+交付报告链接时，同时简短说明：
 
----
+1. 行情数据的最新日期和报告生成日期；
+2. 有哪些行业模块陈旧、缺失或由模型估算；
+3. 最重要的两到三个研究发现及其来源类别；
+4. 本报告仅供研究与教育，不构成投资建议。
 
-## 报告结构 & 分析维度
+不要把运行日志中的内部变量当成对外结论。报告中的综合分数也只能作为模型的可解释汇总，必须连同数据新鲜度、权重和局限一起阅读。
 
-### 报告导航
+## 报告与评分解释
 
-```
-📋 报告目录（左侧固定侧边栏）
-├── 概览
-│   ├── 📊 KPI 仪表盘（10 项核心指标）
-│   └── 📏 52周价格位置
-├── 📈 通用分析（Tab 面板）
-│   ├── 📊 技术走势（K线+MA+布林带）
-│   ├── 📉 技术指标（RSI+MACD）
-│   ├── 💰 财务趋势（营收/毛利/净利/资产）
-│   ├── 📐 估值分析（PE/PB/PS/ROE+目标价）
-│   └── 🏦 机构动向（前十大+分析师共识）
-├── 💾 存储行业专属（垂直堆叠）
-│   ├── 📦 库存 & 价格周期
-│   ├── 📊 定价能力分析（毛利率趋势）
-│   ├── 🚀 HBM GPU 需求量化（🔧公司差异化）
-│   ├── 🎯 下游需求终端拆分（🔧公司差异化）
-│   ├── 🔬 技术节点路线图（🔧公司差异化）
-│   ├── 🎯 行业对标（雷达图）
-│   └── 📋 公司事件（财务/IR/内部人/股东/评级）
-└── 📋 综合评估（10维度评分详情）
-    └── 📈 历史回测（IC 3M/6M/12M + IR + 分层收益 + 散点图）
-```
+报告按以下顺序组织：概览、KPI 与价格位置、技术与财务、库存与价格周期、HBM 与下游需求、技术节点、同业对标、公开事件、评分拆解与回测诊断。
 
-### 公司差异化面板（🔧 标注）
+评分使用 0–100 的研究信号刻度：
 
-以下三个面板根据公司业务结构个性化展示：
+| 区间 | 表述 | 含义 |
+| --- | --- | --- |
+| 70–100 | 较强 | 多个已披露或已引用的指标偏正面，仍须核验估算和风险 |
+| 55–69 | 偏强 | 正面与不确定因素并存 |
+| 45–54 | 中性 | 证据不足以形成明确方向 |
+| 30–44 | 偏弱 | 多个指标偏负面或数据质量较低 |
+| 0–29 | 较弱 | 风险、缺失或负面信号占主导 |
 
-| 面板 | MU（存储巨头） | WDC（NAND+HDD） | STX（HDD为主） | SNDK（纯NAND） |
-|------|--------------|----------------|---------------|---------------|
-| 🚀 HBM | ✅ 主要供应商 15%份额，营收~$75亿 | ⚠️ 不涉及，SSD间接受益 | ⚠️ 不涉及 | ⚠️ 不涉及 |
-| 🎯 下游 | 公司加权 +19.1%（DRAM×70%+NAND×25%+HBM×5%） | +11.1%（NAND×55%+HDD×45%） | +5.6%（HDD×95%） | +14.5%（NAND×90%） |
-| 🔬 技术 | DRAM 领先(1c)+NAND 领先(400L+) | NAND 主流(BiCS 300L+) | 少量 NAND | NAND 主流(BiCS 300L+) |
+评分权重、输入数据、公司差异化系数和缺失项处理应在报告中披露。不要根据分数生成交易动作、仓位或价格目标。
 
-**公司业务结构数据存储在 `industry_data.json` → `company_profiles`，可通过 WebSearch 更新。**
+## 回测的正确使用
 
----
+回测只用于检查历史样本中评分与后续收益的关系。报告必须显示样本区间、样本数、可用前瞻期、简化评分与实际报告评分的差异，以及数据可得性限制。
 
-## 综合评分体系
+特别注意：该回测样本有限，行业数据存在回填和估算，可能有幸存者偏差、数据修订、时点不一致、过拟合以及未计交易成本/税费/滑点等问题。IC、IR、分层收益和模拟结果均不代表未来表现，也不能证明策略有效。
 
-### 两层评分架构
+## 目录结构
 
-```
-┌─ 综合评分（10维度）─────────────────────────────┐
-│ = 短期技术(10%) + 存储周期(25%) + 分析师(12%)    │
-│ + HBM供需(8%) + 下游需求(8%) + 内部人(8%)       │
-│ + 股东(8%) + 技术节点(4%) + 对标(5%) + 财务(±25) │
-│                                                   │
-│ ┌─ 存储周期内部评分（6模块, 公司差异化）──────┐  │
-│ │ = 库存(20%) + 价格(25%) + CapEx(15%)         │  │
-│ │ + HBM供需(20%) + 下游需求(15%) + 技术(5%)    │  │
-│ │                                               │  │
-│ │ 🔧 HBM: 行业短缺×公司因子                     │  │
-│ │     MU ×1.0 | SNDK/WDC/STX ×0.3              │  │
-│ │ 🔧 下游: 行业增速×公司营收结构加权             │  │
-│ │     MU: 70%×17.2+25%×16.1+5%×60=+19.1%      │  │
-│ │     WDC: 55%×16.1+45%×5=+11.1%               │  │
-│ │ 🔧 技术: 公司实际量产节点判定                  │  │
-│ │     DRAM领先(1c/1d) +3分, NAND领先(400L+) +3分 │  │
-│ └──────────────────────────────────────────────┘  │
-└───────────────────────────────────────────────────┘
+```text
+stock-memory-analyzer/
+├── SKILL.md                 # 技能声明、流程、边界与元数据
+├── README.md                # 项目简介与社区状态
+├── README.en.md             # English project overview
+├── LICENSE                  # GPL-3.0-only
+├── analyze.py               # 分析入口
+├── requirements.txt         # Python 依赖
+├── config/industry_data.json # 行业基准、来源和更新日期
+├── utils/
+│   ├── preflight.py         # 依赖、凭据和网络预检
+│   ├── fetcher.py           # panda_data 接口封装
+│   ├── data_updater.py      # 行业数据更新与新鲜度检查
+│   ├── indicators.py        # 技术指标与风险统计
+│   ├── memory_analyzer.py   # 存储行业分析与研究信号
+│   ├── backtester.py        # 历史诊断回测
+│   └── report_builder.py    # HTML 报告生成
+├── agents/
+│   ├── cursor-rule.mdc      # Cursor 运行时入口
+│   └── portable-loader.md   # Hermes / OpenClaw 运行时入口
+└── output/                  # 本地生成的报告，不应提交敏感数据
 ```
 
-### 评级区间
+## 已知限制与维护
 
-| 分数 | 评级 |
-|------|------|
-| ≥70 | 🟢 强烈看好 |
-| 55-69 | 🟡 中性偏多 |
-| 45-54 | ⚪ 中性 |
-| 30-44 | 🟠 中性偏空 |
-| <30 | 🔴 谨慎 |
+- `panda_data` 覆盖范围、字段含义和更新时间以实际接口返回为准。
+- 行业数据可能需要人工核验；付费报告的非公开内容不能作为可复现来源。
+- 部分 HBM、GPU 出货和产能数据是模型估算，结论对假设敏感。
+- 存储周期高度波动，历史关系可能失效；不要将本项目表述为已验证或生产可用。
+- 修改第三方代码、数据、论文或报告时，须保留来源、许可证和改动说明。
 
-### 四家公司评分估算
-
-| Ticker | HBM因子 | 公司加权增速 | 技术定位 | 存储周期≈ | 综合≈ |
-|--------|---------|-------------|----------|----------|------|
-| MU | ×1.0 直接受益 | +19.1% | DRAM+NAND双领先 | 100 | ~85 |
-| SNDK | ×0.3 间接受益 | +14.5% | NAND主流 | 84 | ~70 |
-| WDC | ×0.3 间接受益 | +11.1% | NAND主流 | 84 | ~65 |
-| STX | ×0.3 间接受益 | +5.6% | 少量NAND | 78 | ~55 |
-
----
-
-## 数据来源
-
-### 完整来源清单
-
-| 类别 | 数据 | 来源 | 更新机制 |
-|------|------|------|----------|
-| 🟢 实时 | 行情 OHLCV | panda_data `get_us_daily` | 自动 |
-| 🟢 实时 | 季度财务（营收/毛利/库存/COGS/CapEx） | panda_data `get_fina_ex` | 自动 |
-| 🟢 实时 | 估值（PE/PB/PS/PEG/市值/Beta） | panda_data `mktfin_metric` + `pv_metric` | 自动 |
-| 🟢 实时 | 机构持仓/内部人/分析师/股东 | panda_data 多接口 | 自动 |
-| 🟡 动态 | DRAM/NAND 合约价 | WebSearch → TrendForce/DRAMeXchange | 每次更新 |
-| 🟡 动态 | HBM 市场规模/份额 | WebSearch → TrendForce/Micron | 每次更新 |
-| 🟡 动态 | NVDA GPU Compute 营收 | NVDA 季报（公开审计数据） | 每季更新 |
-| 🟡 动态 | GPU 型号占比 | WebSearch → 供应链推断 | 每次更新 |
-| 🟡 动态 | HBM 供给参数 | WebSearch → 晶圆产能估算 | 每次更新 |
-| 🟡 动态 | 下游需求终端拆分 | WebSearch → TrendForce/IDC | 每次更新 |
-| 🟡 动态 | CapEx 指引 | WebSearch → 公司财报 | 每季更新 |
-| 🟡 动态 | 技术节点路线图 | WebSearch → 行业报告 | 每次更新 |
-| ⚪ 静态 | 公司业务结构（revenue_mix/节点/定位） | industry_data.json → company_profiles | 不定期 |
-| ⚪ 静态 | 对标公司列表 | industry_data.json → memory_peers | 不定期 |
-| 🧮 模型 | 技术指标(RSI/MACD等) | indicators.py 标准公式 | — |
-| 🧮 模型 | 评分权重 | memory_analyzer.py | — |
-
-### HBM 需求推导链路
-
-```
-NVDA 季报 Compute 营收 ($B)           ← 公开审计数据 ✅
-  ÷ 加权 GPU ASP ($K)                 ← 行业估算 ⚠️
-  → GPU 季度出货量 (K)
-  × 每卡 HBM 容量 (GB)                ← NVIDIA 官方规格 ✅
-  × GPU 型号出货占比                   ← 行业估算 ⚠️
-  → NVIDIA HBM 需求 (M GB)
-  × 非 NVIDIA 因子 (1.30)             ← 行业估算 ⚠️
-  → 全行业 HBM 需求 (M GB)
-  vs 晶圆产能供给 (M GB)              ← 行业估算 ⚠️
-  → 供需缺口判定（正=短缺, 负=盈余）
-```
-
----
-
-## CLI 命令速查
-
-```bash
-python analyze.py --check-env                         # 首次使用：检查账号和依赖
-python analyze.py --install-deps --check-env          # 明确同意后安装缺失依赖
-python utils/data_updater.py freshness              # 检查所有模块新鲜度
-python utils/data_updater.py dram-price --data '{}'  # DRAM 价格
-python utils/data_updater.py nand-price --data '{}'  # NAND 价格
-python utils/data_updater.py hbm-market --data '{}'  # HBM 市场
-python utils/data_updater.py nvda-revenue --data '{}' # NVDA 营收
-python utils/data_updater.py gpu-mix --data '{}'     # GPU 型号占比
-python utils/data_updater.py hbm-supply --data '{}'  # HBM 供给参数
-python utils/data_updater.py downstream --data '{}'  # 下游需求
-python utils/data_updater.py capex --ticker MU --data '{}'  # CapEx
-python utils/data_updater.py tech-nodes --data '{}'  # 技术节点
-
-python analyze.py --ticker MU                         # 使用环境变量凭据运行分析
-python analyze.py --ticker MU --username 86xxx --password xxx  # 仅在明确同意时使用命令行凭据
-```
-
----
-
-## 历史回测
-
-每次分析自动执行回测，验证评分模型有效性：
-
-| 指标 | 说明 |
-|------|------|
-| **IC (3M/6M/12M)** | 信息系数：评分与后续 N 月实际收益的相关系数。正值表示评分有正向预测力，>0.15 为强正相关 |
-| **IR** | 信息比率：IC × √breadth，衡量风险调整后的预测能力，>0.5 为优秀 |
-| **分层收益** | 按评分分 5 档(0-20/20-40/40-60/60-80/80-100)，每档统计平均后续收益和胜率 |
-| **散点图** | 每季度评分 vs 实际后续收益，带趋势线 |
-| **策略模拟** | 评分≥60 买入/持有，<40 空仓，之间半仓，对比买入持有 |
-
-**回测评分公式** = 技术面 + 库存周期 + DRAM/NAND价格周期 + HBM/AI需求 + 毛利率 + CapEx + 财务质量
-
-数据来源：panda_data 历史行情+财务 + industry_data.json（DRAM/NAND 合约价回填至 2022-Q1，HBM 数据自 2024-Q1 起）
-
----
-
-## 网络要求 & 兼容性
-
-- **panda_data API**：国内网络直接访问（86手机号注册）
-- **Plotly.js CDN**：报告内引用 `cdn.plot.ly`，国内/国外均可访问
-- **WebSearch**：分析前由 Claude 执行，需 Claude 有网络访问权限
-- **报告输出**：纯静态 HTML 文件，离线也可打开（Plotly.js 首次需 CDN 加载）
-- **Python 依赖**：`panda_data pandas numpy plotly`
+维护者应定期检查来源链接、更新日期、过期数据提示和依赖兼容性。提交前确认仓库不含账号、密码、API key、私有数据集或其他敏感信息。

@@ -274,7 +274,7 @@ def run_backtest(ticker: str, price_df: pd.DataFrame,
         fin_quarters: 所有季度财务 {fy_period: {revenue, ...}}
 
     Returns:
-        {points: [...], correlation, win_rate, tier_returns, strategy_return}
+        {points: [...], correlation, win_rate, tier_returns}
     """
     # 按季度排序
     sorted_qs = sorted(fin_quarters.keys())
@@ -367,23 +367,8 @@ def run_backtest(ticker: str, price_df: pd.DataFrame,
     ic_6m = _safe_ic(valid_6m)
     ic_12m = _safe_ic(valid_12m)
 
-    # IR (信息比率) = 策略超额收益 / 超额收益标准差 (年化)
-    strategy_excess = []
-    for p in points:
-        if p["fwd_3m_pct"] is not None and p["fwd_6m_pct"] is not None:
-            # 策略收益: 评分≥60买, <40空, 间半仓
-            if p["score"] >= 60:
-                strat_ret = p["fwd_6m_pct"]
-            elif p["score"] < 40:
-                strat_ret = 0
-            else:
-                strat_ret = p["fwd_6m_pct"] * 0.5
-            excess = strat_ret - p["fwd_6m_pct"]  # 超额 = 策略 - 持有
-            strategy_excess.append(excess)
-    if strategy_excess and np.std(strategy_excess) > 0:
-        ir_val = round(np.mean(strategy_excess) * 2 / (np.std(strategy_excess) * np.sqrt(2)), 3)
-    elif ic_12m is not None:
-        # 回退: IR ≈ IC × √breadth (季度再平衡, 每年约4次独立决策)
+    # 研究诊断：IR ≈ IC × √breadth；不是策略绩效或风险调整收益。
+    if ic_12m is not None:
         ir_val = round(ic_12m * np.sqrt(4), 3)
     else:
         ir_val = None
@@ -407,22 +392,6 @@ def run_backtest(ticker: str, price_df: pd.DataFrame,
     tier_3m = tier_returns(valid_3m)
     tier_6m = tier_returns(valid_6m)
 
-    # 策略模拟: 评分≥60买入, <40卖出, 之间持有
-    strategy_rets = []
-    bh_rets = []
-    for p in points:
-        if p["fwd_3m_pct"] is not None:
-            bh_rets.append(p["fwd_3m_pct"])
-            if p["score"] >= 60:
-                strategy_rets.append(p["fwd_3m_pct"])
-            elif p["score"] < 40:
-                strategy_rets.append(0)  # 空仓
-            else:
-                strategy_rets.append(p["fwd_3m_pct"] * 0.5)  # 半仓
-
-    strategy_cum = np.prod([1 + r/100 for r in strategy_rets]) - 1 if strategy_rets else 0
-    bh_cum = np.prod([1 + r/100 for r in bh_rets]) - 1 if bh_rets else 0
-
     # 胜率
     high_score_wins = [r for s, r in valid_3m if s >= 60 and r is not None]
     high_win_rate = sum(1 for r in high_score_wins if r > 0) / len(high_score_wins) * 100 if high_score_wins else None
@@ -441,8 +410,6 @@ def run_backtest(ticker: str, price_df: pd.DataFrame,
         "tier_3m": tier_3m,
         "tier_6m": tier_6m,
         "tier_12m": tier_returns(valid_12m),
-        "strategy_cum_pct": round(strategy_cum * 100, 1),
-        "bh_cum_pct": round(bh_cum * 100, 1),
         "high_win_rate": round(high_win_rate, 1) if high_win_rate else None,
         "low_lose_rate": round(low_lose_rate, 1) if low_lose_rate else None,
         "avg_score": round(np.mean(scores), 1),

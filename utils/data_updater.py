@@ -40,6 +40,25 @@ def _save_config(config: dict):
         json.dump(config, f, ensure_ascii=False, indent=2)
 
 
+def _record_provenance(section_path: tuple, source: str, as_of: str) -> None:
+    """为一次 CLI 更新写入来源、数据截至日和访问日。"""
+    try:
+        datetime.strptime(as_of, "%Y-%m-%d")
+    except ValueError as exc:
+        raise ValueError("--as-of 必须使用 YYYY-MM-DD 格式") from exc
+
+    config = _load_config()
+    section = config
+    for key in section_path:
+        if key not in section or not isinstance(section[key], dict):
+            section[key] = {}
+        section = section[key]
+    section["_source"] = source
+    section["_as_of"] = as_of
+    section["_accessed_at"] = datetime.now().strftime("%Y-%m-%d")
+    _save_config(config)
+
+
 def get_data_freshness() -> dict:
     """检查各模块数据新鲜度，返回距今天数"""
     config = _load_config()
@@ -424,6 +443,14 @@ def main():
     p_capex.add_argument("--data", type=str, required=True,
                          help='JSON 格式 CapEx 数据')
 
+    update_parsers = [p_dram, p_nand, p_hbm, p_gpu, p_down, p_mix,
+                      p_supply, p_nvda, p_tech, p_capex]
+    for update_parser in update_parsers:
+        update_parser.add_argument("--source", type=str, required=True,
+                                   help="公开来源 URL 或可识别的发布方与文件名")
+        update_parser.add_argument("--as-of", type=str, required=True,
+                                   help="数据截至日期，格式 YYYY-MM-DD")
+
     args = parser.parse_args()
 
     if args.command == "freshness":
@@ -432,42 +459,52 @@ def main():
     elif args.command == "dram-price":
         data = json.loads(args.data)
         update_dram_price(data)
+        _record_provenance(("dram_contract_price_qoq",), args.source, args.as_of)
 
     elif args.command == "nand-price":
         data = json.loads(args.data)
         update_nand_price(data)
+        _record_provenance(("nand_contract_price_qoq",), args.source, args.as_of)
 
     elif args.command == "hbm-market":
         data = json.loads(args.data)
         update_hbm_market(data)
+        _record_provenance(("hbm_market",), args.source, args.as_of)
 
     elif args.command == "gpu-shipments":
         data = json.loads(args.data)
         update_gpu_shipments(data)
+        _record_provenance(("gpu_hbm_specs", "quarterly_gpu_shipments_k"), args.source, args.as_of)
 
     elif args.command == "downstream":
         data = json.loads(args.data)
         update_downstream_demand(data)
+        _record_provenance(("downstream_demand",), args.source, args.as_of)
 
     elif args.command == "gpu-mix":
         data = json.loads(args.data)
         update_gpu_mix_ratios(data)
+        _record_provenance(("gpu_hbm_specs", "gpu_mix_ratios"), args.source, args.as_of)
 
     elif args.command == "hbm-supply":
         data = json.loads(args.data)
         update_hbm_supply_params(data)
+        _record_provenance(("gpu_hbm_specs", "hbm_supply_params"), args.source, args.as_of)
 
     elif args.command == "nvda-revenue":
         data = json.loads(args.data)
         update_nvda_revenue(data)
+        _record_provenance(("gpu_hbm_specs", "nvda_quarterly_revenue"), args.source, args.as_of)
 
     elif args.command == "tech-nodes":
         data = json.loads(args.data)
         update_technology_nodes(data)
+        _record_provenance(("technology_nodes",), args.source, args.as_of)
 
     elif args.command == "capex":
         data = json.loads(args.data)
         update_capex_guidance(args.ticker, data)
+        _record_provenance(("capex_guidance",), args.source, args.as_of)
 
     else:
         parser.print_help()

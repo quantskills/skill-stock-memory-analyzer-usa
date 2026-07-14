@@ -4,6 +4,7 @@ HTML 报告生成模块 - 基于 Plotly + 纯 CSS 生成交互式分析报告
 import json
 import math
 from datetime import datetime
+from html import escape
 from typing import Optional
 
 import numpy as np
@@ -58,7 +59,8 @@ def build_report(ticker: str, company_name: str, report_date: str,
                  tech_position: dict = None,
                  data_freshness: dict = None,
                  hbm_exposure: dict = None,
-                 backtest_result: dict = None) -> str:
+                 backtest_result: dict = None,
+                 industry_data: dict = None) -> str:
     """
     生成完整 HTML 报告
 
@@ -77,6 +79,7 @@ def build_report(ticker: str, company_name: str, report_date: str,
 
     # 2.5 数据新鲜度提示
     sections.append(_data_freshness_bar(data_freshness))
+    sections.append(_industry_provenance_bar(industry_data))
 
     # 3. KPI 仪表盘
     sections.append('<div id="sec-kpi">' + _kpi_dashboard(info, technicals, price_df) + '</div>')
@@ -304,21 +307,21 @@ def _report_header(company_name: str, ticker: str, report_date: str, info: dict)
     <div class="report-header">
         <h1>💾 美股存储芯片深度分析报告</h1>
         <div class="subtitle">{company_name} ({ticker}) | {report_date} | {sector} / {industry}</div>
-        <div class="disclaimer">🤖 本报告由 AI 自动生成，仅供参考，不构成投资建议</div>
+        <div class="disclaimer">🤖 本报告由 AI 自动生成，仅供研究与教育；模型评分、估算和回测不构成投资建议或收益承诺</div>
     </div>
     <div style="background:#1a2332; border:1px solid #2a3a4a; border-radius:10px; padding:14px 18px; margin-bottom:20px; font-size:0.78rem; color:#8899aa; line-height:1.8;">
         <div style="color:#90caf9; font-weight:700; margin-bottom:6px;">📡 数据来源声明</div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px 20px;">
             <div>📊 <b style='color:#e1e8ed;'>行情/财务/估值</b> — panda_data API (实时)</div>
             <div>🏦 <b style='color:#e1e8ed;'>机构/内部人/分析师</b> — panda_data API (实时)</div>
-            <div>💰 <b style='color:#e1e8ed;'>DRAM/NAND 合约价</b> — WebSearch → TrendForce (每次更新)</div>
-            <div>🚀 <b style='color:#e1e8ed;'>HBM 市场/份额</b> — WebSearch → TrendForce/Micron (每次更新)</div>
-            <div>🔧 <b style='color:#e1e8ed;'>NVDA GPU 营收</b> — NVDA 季报 (公开数据, 每次更新)</div>
-            <div>📐 <b style='color:#e1e8ed;'>GPU 型号占比/ASP</b> — WebSearch → 供应链/财报 (每次更新)</div>
-            <div>🏭 <b style='color:#e1e8ed;'>CapEx 指引</b> — WebSearch → 公司财报 (每次更新)</div>
-            <div>🔬 <b style='color:#e1e8ed;'>技术节点路线图</b> — WebSearch → 行业报告 (每次更新)</div>
-            <div>📦 <b style='color:#e1e8ed;'>下游需求拆分</b> — WebSearch → TrendForce/IDC (每次更新)</div>
-            <div>📏 <b style='color:#e1e8ed;'>HBM 供给参数</b> — WebSearch → 晶圆产能估算 (每次更新)</div>
+            <div>💰 <b style='color:#e1e8ed;'>DRAM/NAND 合约价</b> — 配置中的公开来源与截至日期</div>
+            <div>🚀 <b style='color:#e1e8ed;'>HBM 市场/份额</b> — 配置中的公开来源或估算</div>
+            <div>🔧 <b style='color:#e1e8ed;'>NVDA GPU 营收</b> — 公开财报或配置记录</div>
+            <div>📐 <b style='color:#e1e8ed;'>GPU 型号占比/ASP</b> — 行业估算，需结合假设阅读</div>
+            <div>🏭 <b style='color:#e1e8ed;'>CapEx 指引</b> — 公司公开披露或配置记录</div>
+            <div>🔬 <b style='color:#e1e8ed;'>技术节点路线图</b> — 公司披露/行业资料或配置记录</div>
+            <div>📦 <b style='color:#e1e8ed;'>下游需求拆分</b> — 行业资料或配置记录</div>
+            <div>📏 <b style='color:#e1e8ed;'>HBM 供给参数</b> — 模型估算，非公司披露</div>
             <div>🧮 <b style='color:#e1e8ed;'>技术指标/评分权重</b> — 模型内置算法</div>
             <div>🏷️ <b style='color:#e1e8ed;'>对标公司列表</b> — 静态维护</div>
         </div>
@@ -345,8 +348,45 @@ def _data_freshness_bar(freshness: dict = None) -> str:
     <div style="background:#332200; border:1px solid #ff9800; border-radius:8px; padding:10px 16px; margin-bottom:20px; font-size:0.8rem;">
         <span style="color:#ff9800; font-weight:700;">⚠️ 行业数据可能过时：</span>
         <span style="color:#e1e8ed;">{items_html}</span>
-        <span style="color:#8899aa; margin-left:12px;">建议重新运行分析以获取最新数据</span>
+        <span style="color:#8899aa; margin-left:12px;">请先核验来源和截至日期，再据此解读结论</span>
     </div>"""
+
+
+def _industry_provenance_bar(industry_data: dict = None) -> str:
+    """展示行业输入的来源记录，避免把配置值误读为无条件的实时事实。"""
+    if not industry_data:
+        return ""
+
+    gpu_specs = industry_data.get("gpu_hbm_specs", {})
+    sections = [
+        ("DRAM 合约价", industry_data.get("dram_contract_price_qoq", {})),
+        ("NAND 合约价", industry_data.get("nand_contract_price_qoq", {})),
+        ("HBM 市场", industry_data.get("hbm_market", {})),
+        ("GPU 出货", gpu_specs.get("quarterly_gpu_shipments_k", {})),
+        ("GPU 型号占比", gpu_specs.get("gpu_mix_ratios", {})),
+        ("HBM 供给参数", gpu_specs.get("hbm_supply_params", {})),
+        ("下游需求", industry_data.get("downstream_demand", {})),
+        ("CapEx 指引", industry_data.get("capex_guidance", {})),
+        ("技术节点", industry_data.get("technology_nodes", {})),
+    ]
+
+    rows = []
+    for label, section in sections:
+        if not isinstance(section, dict):
+            section = {}
+        source = section.get("_source") or "未记录来源"
+        as_of = section.get("_as_of") or "未记录截至日期"
+        source_html = escape(str(source), quote=True)
+        if source_html.startswith(("https://", "http://")):
+            source_html = f"<a href='{source_html}' target='_blank' rel='noopener noreferrer'>{source_html}</a>"
+        rows.append(f"<div>• <b>{escape(label)}</b>：{source_html}（截至 {escape(str(as_of))}）</div>")
+
+    return f"""
+    <details style="background:#17202b; border:1px solid #2a3a4a; border-radius:8px; padding:10px 14px; margin:-8px 0 20px; font-size:0.75rem; color:#8899aa;">
+        <summary style="color:#90caf9; cursor:pointer;">🔎 行业输入来源与截至日期（点击展开）</summary>
+        <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px 16px; margin-top:8px;">{''.join(rows)}</div>
+        <div style="margin-top:8px; color:#556677;">“未记录”表示该配置不能视为可复核的最新行业事实；模型估算应结合假设单独解读。</div>
+    </details>"""
 
 
 def _kpi_dashboard(info: dict, technicals: dict, price_df: pd.DataFrame) -> str:
@@ -1464,7 +1504,7 @@ def _assessment_footer(memory_assessment: dict, inv_analysis: dict, price_cycle:
         if beta_val < 0.8: finance_mod += 2
         elif beta_val > 2.0: finance_mod -= 3
 
-    # === 综合评分公式 (所有维度, 公司差异化) ===
+    # === 研究信号公式（所有维度、公司差异化） ===
     st_score = 60 if short_term == "偏多" else 40 if short_term == "偏空" else 50
     lt_score = score  # 存储周期评分 (0-100)
 
@@ -1545,16 +1585,16 @@ def _assessment_footer(memory_assessment: dict, inv_analysis: dict, price_cycle:
 
     # 结论文本
     if final_score >= 65:
-        summary = f"综合评分 {final_score} 分，当前处于存储周期{pc_phase}，盈利能力突出（单季净利率{nm_latest:.1f}%、ROE{roe_val:.1f}%），分析师一致看多（{rec_total}位分析师），建议积极关注，等待技术面企稳信号后分批布局。"
+        summary = f"研究信号 {final_score} 分，研究指标整体较强：存储周期为{pc_phase}，单季净利率{nm_latest:.1f}%、ROE{roe_val:.1f}%，分析师共识为{rec_total}位。请结合数据新鲜度、来源和模型假设独立复核。"
         summary_color = "#4caf50"
     elif final_score >= 50:
-        summary = f"综合评分 {final_score} 分，存储周期中性偏谨慎。短期技术面{short_term}，净利率{nm_latest:.1f}%，{rec_signal}。建议密切关注 DRAM/NAND 价格拐点和库存变化，可在回调中逐步建仓。"
+        summary = f"研究信号 {final_score} 分，研究指标处于中间区间。短期技术面{short_term}，净利率{nm_latest:.1f}%，{rec_signal}；重点复核 DRAM/NAND 价格拐点、库存变化与缺失数据。"
         summary_color = "#ff9800"
     elif final_score >= 35:
-        summary = f"综合评分 {final_score} 分，多项指标偏弱。短期{short_term}，{rec_signal}。建议观望，等待基本面和技术面共振信号。"
+        summary = f"研究信号 {final_score} 分，多项研究指标偏弱。短期{short_term}，{rec_signal}；应继续核验基本面、技术面和行业数据的时点一致性。"
         summary_color = "#ff9800"
     else:
-        summary = f"综合评分 {final_score} 分，风险信号较多。毛利率{gross_margin:.1f}%偏低，建议谨慎，控制仓位，等待明确的周期反转信号。"
+        summary = f"研究信号 {final_score} 分，风险或数据质量信号较多。毛利率{gross_margin:.1f}%；请优先核验数据完整性、周期假设和后续公开披露。"
         summary_color = "#f44336"
 
     st_detail = " | ".join([f"{n}={d}" for n, s, d in st_signals])
@@ -1578,15 +1618,15 @@ def _assessment_footer(memory_assessment: dict, inv_analysis: dict, price_cycle:
         <!-- 合并结论卡片: 评分 + 结论 + 周期打分 -->
         <div style="background:linear-gradient(135deg, rgba(76,175,80,0.08) 0%, rgba(255,255,255,0.03) 100%); border:1px solid {summary_color}; border-radius:14px; padding:24px; margin-bottom:20px;">
             <div style="display:flex; align-items:stretch; gap:24px; flex-wrap:wrap;">
-                <!-- 左侧: 综合评分大数字 -->
+                <!-- 左侧: 研究信号大数字 -->
                 <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:110px; padding:12px 16px; background:rgba(0,0,0,0.3); border-radius:10px;">
-                    <div style="color:#8899aa; font-size:0.8rem; font-weight:600; margin-bottom:4px;">综合评分</div>
+                    <div style="color:#8899aa; font-size:0.8rem; font-weight:600; margin-bottom:4px;">研究信号</div>
                     <div style="font-size:3.2rem; font-weight:900; color:{summary_color}; line-height:1;">{final_score}</div>
                     <div style="font-size:0.75rem; color:#8899aa; margin-top:4px;">满分 100</div>
                 </div>
                 <!-- 中间: 结论文本 -->
                 <div style="flex:1; min-width:250px; display:flex; flex-direction:column; justify-content:center;">
-                    <div style="color:#fff; font-size:1.05rem; font-weight:700; margin-bottom:8px;">📊 结论</div>
+                    <div style="color:#fff; font-size:1.05rem; font-weight:700; margin-bottom:8px;">📊 研究摘要</div>
                     <div style="color:#d0d8e0; font-size:0.95rem; line-height:1.7;">{summary}</div>
                     <div style="margin-top:12px; display:flex; gap:16px; flex-wrap:wrap; font-size:0.8rem; color:#8899aa;">
                         <span>📉 短期: <b style="color:{st_color};">{short_term}</b></span>
@@ -1624,13 +1664,13 @@ def _assessment_footer(memory_assessment: dict, inv_analysis: dict, price_cycle:
             <div style="background:rgba(255,255,255,0.04); border-radius:10px; padding:16px;">
                 <div style="color:{st_color}; font-size:1.15rem; font-weight:700; margin-bottom:10px;">📉 短期 (1-5日): {short_term}</div>
                 <div style="margin-bottom:8px; font-size:0.85rem;">{st_signals_html}</div>
-                <div style="color:#8899aa; font-size:0.82rem;">MA5趋势: {trend_short} | 建议: {'观望，等待企稳信号' if short_term == '偏空' else '可关注，设好止损' if short_term == '偏多' else '观望，等待方向选择'}</div>
+                <div style="color:#8899aa; font-size:0.82rem;">MA5趋势: {trend_short} | 研究重点: {'核验价格与成交量是否继续走弱' if short_term == '偏空' else '核验趋势能否得到成交量确认' if short_term == '偏多' else '等待更多数据确认方向'}</div>
             </div>
             <div style="background:rgba(255,255,255,0.04); border-radius:10px; padding:16px;">
                 <div style="color:{lt_color}; font-size:1.15rem; font-weight:700; margin-bottom:10px;">📈 长期 (3-12月): {long_term}</div>
                 <div style="margin-bottom:8px; font-size:0.85rem;">{lt_signals_html}</div>
                 <div style="color:#8899aa; font-size:0.82rem;">存储周期: {pc_phase} | {rec_signal}</div>
-                <div style="color:#8899aa; font-size:0.82rem;">建议: {'存储周期评分较高，可关注AI驱动需求' if score >= 55 else '等待NAND/DRAM价格企稳后布局' if score >= 45 else '谨慎，等待周期拐点信号'}</div>
+                <div style="color:#8899aa; font-size:0.82rem;">研究重点: {'复核 AI/HBM 假设与公司实际暴露度' if score >= 55 else '复核 NAND/DRAM 价格与库存的时点' if score >= 45 else '复核周期拐点和财务数据完整性'}</div>
             </div>
         </div>
 
@@ -1639,11 +1679,11 @@ def _assessment_footer(memory_assessment: dict, inv_analysis: dict, price_cycle:
             <div style="color:#90caf9; font-size:1.05rem; font-weight:700; margin-bottom:12px;">📐 评估逻辑 & 权重说明</div>
             <div style="font-size:0.85rem; color:#8899aa; line-height:2.0;">
 
-                <!-- 综合评分公式 -->
+                <!-- 研究信号公式 -->
                 <div style="background:rgba(144,202,249,0.06); border:1px solid rgba(144,202,249,0.15); border-radius:8px; padding:14px; margin-bottom:16px;">
-                    <div style="color:#e1e8ed; font-weight:700; margin-bottom:8px;">📏 综合评分公式</div>
+                    <div style="color:#e1e8ed; font-weight:700; margin-bottom:8px;">📏 研究信号计算</div>
                     <div style="font-family:'Consolas','Courier New',monospace; font-size:0.9rem; color:#90caf9; margin-bottom:8px;">
-                        综合分 = 短期技术(10%) + 存储周期(25%) + 分析师(12%) + HBM供需(8%) + 下游需求(8%) + 内部人(8%) + 股东(8%) + 技术节点(4%) + 行业对标(5%) + 财务修正(±25)
+                        研究信号 = 短期技术(10%) + 存储周期(25%) + 分析师(12%) + HBM供需(8%) + 下游需求(8%) + 内部人(8%) + 股东(8%) + 技术节点(4%) + 行业对标(5%) + 财务修正(±25)
                     </div>
                     <div style="font-size:0.8rem; color:#556677;">
                         数据来源: {data_sources}
@@ -2458,9 +2498,6 @@ def _fig_backtest_results(bt: dict) -> str:
     ir_val = bt.get("ir")
     tier_3m = bt.get("tier_3m", [])
     high_wr = bt.get("high_win_rate")
-    strategy_cum = bt.get("strategy_cum_pct", 0)
-    bh_cum = bt.get("bh_cum_pct", 0)
-
     html = []
 
     # --- KPI 卡片 ---
@@ -2468,12 +2505,10 @@ def _fig_backtest_results(bt: dict) -> str:
     ic_color_6m = "#4caf50" if (ic_6m and ic_6m > 0.1) else ("#ff9800" if (ic_6m and ic_6m > 0) else "#f44336")
     ic_color_12m = "#4caf50" if (ic_12m and ic_12m > 0.1) else ("#ff9800" if (ic_12m and ic_12m > 0) else "#f44336")
     ir_color = "#4caf50" if (ir_val and ir_val > 0.3) else ("#ff9800" if (ir_val and ir_val > 0) else "#f44336")
-    strategy_color = "#4caf50" if strategy_cum > bh_cum else "#f44336"
-
     html.append(f"""
-    <div class="section-title" id="sec-backtest">📈 历史回测</div>
+    <div class="section-title" id="sec-backtest">📈 历史样本诊断</div>
     <div style="color:#8899aa; font-size:0.8rem; margin-bottom:12px;">
-        基于 panda_data 历史行情+财务数据的简易回测 | 回测区间: {bt.get('date_range','')} | 共 {bt['n_points']} 个季度
+        基于 panda_data 历史行情与财务数据的相关性诊断 | 样本区间: {bt.get('date_range','')} | 共 {bt['n_points']} 个季度；不代表未来表现
     </div>
     <div style='display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;'>
         <div style='flex:1; min-width:130px; background:#1a2332; border-radius:8px; padding:14px; text-align:center;'>
@@ -2501,11 +2536,6 @@ def _fig_backtest_results(bt: dict) -> str:
             <div style='font-size:1.5rem; font-weight:700; color:{'#4caf50' if (high_wr and high_wr>50) else '#f44336'}'>{high_wr if high_wr else 'N/A'}%</div>
             <div style='font-size:0.7rem; color:#8899aa;'>评分≥60后3月正收益概率</div>
         </div>
-        <div style='flex:1; min-width:130px; background:#1a2332; border-radius:8px; padding:14px; text-align:center;'>
-            <div style='color:#8899aa; font-size:0.7rem;'>策略 vs 持有</div>
-            <div style='font-size:1.2rem; font-weight:700;'>策略 <span style='color:{strategy_color};'>+{strategy_cum}%</span></div>
-            <div style='font-size:0.8rem; color:#8899aa;'>买入持有 +{bh_cum}%</div>
-        </div>
     </div>""")
 
     # --- 分层收益柱状图 ---
@@ -2529,7 +2559,7 @@ def _fig_backtest_results(bt: dict) -> str:
             template="plotly_dark", height=350,
             paper_bgcolor="#1a2332", plot_bgcolor="#1a2332",
             margin=dict(l=20, r=20, t=40, b=20),
-            title="评分分层 — 后续3月平均收益",
+            title="评分分层 — 后续 3 月平均收益（历史样本）",
             title_font=dict(size=14, color="#90caf9"),
             yaxis=dict(title="平均收益 (%)", gridcolor="#2a3a4a", tickformat="+.1f"),
             xaxis=dict(title="评分区间", gridcolor="#2a3a4a"),
@@ -2573,7 +2603,7 @@ def _fig_backtest_results(bt: dict) -> str:
             template="plotly_dark", height=380,
             paper_bgcolor="#1a2332", plot_bgcolor="#1a2332",
             margin=dict(l=20, r=20, t=60, b=30),
-            title="评分 vs 后续3月收益 散点图",
+            title="评分与后续 3 月收益的历史样本散点图",
             title_font=dict(size=14, color="#90caf9"),
             yaxis=dict(title="3月收益 (%)", gridcolor="#2a3a4a", tickformat="+.0f"),
             xaxis=dict(title="简化评分 (0-100)", gridcolor="#2a3a4a"),
@@ -2590,9 +2620,9 @@ def _fig_backtest_results(bt: dict) -> str:
         "margin-top:12px; font-size:0.8rem; color:#8899aa;'>"
         "<div style='color:#90caf9; font-weight:700; margin-bottom:6px;'>📐 回测评分方法</div>"
         "<b>回测评分</b> = 技术面(14%) + 库存周期(18%) + 价格周期(18%) + 🆕HBM/AI需求(13%) + 毛利率(14%) + CapEx(11%) + 财务(12%)<br>"
-        "使用 panda_data 历史行情+财务 + DRAM/NAND合约价(2022-Q1) + NVDA营收(2024-Q1起)。回测从有HBM数据的2024年开始。<br>"
-        "<b>IC(信息系数)</b> = 评分与后续实际收益的相关系数，正值表示评分有正向预测能力。<br>"
-        "<b>策略</b> = 评分≥60买入/持有，<40空仓，之间半仓。"
+        "使用 panda_data 历史行情+财务 + DRAM/NAND合约价(2022-Q1) + NVDA营收(2024-Q1起)。诊断从有HBM数据的2024年开始。<br>"
+        "<b>IC(信息系数)</b> = 评分与后续实际收益的相关系数；IR 为 IC × √4 的派生统计。样本有限、回填数据和模型假设会显著影响结果。<br>"
+        "此处仅用于检查历史样本的可解释性，不是交易策略、投资建议或未来表现承诺。"
         "</div>"
     )
 
@@ -2603,10 +2633,10 @@ def _html_footer() -> str:
     """HTML 尾部 + Tab 切换 JS"""
     return """
     <div class="footer-disclaimer">
-        ⚠️ 免责声明：本报告由 AI 自动生成。<br>
-        数据来源：股票数据=panda_data API(实时) | 行业价格/HBM/CapEx/技术节点/下游需求=WebSearch→TrendForce/DRAMeXchange/NVDA季报(每次分析前动态获取)<br>
-        模型参数(GPU占比/供给增速等)=行业估算, 存储在 industry_data.json, 可通过 WebSearch 更新。<br>
-        所有分析结果仅供参考，不构成任何投资建议。投资有风险，入市需谨慎。
+        ⚠️ 免责声明：本报告由 AI 自动生成，仅用于研究与教育。<br>
+        股票数据来自 panda_data；行业资料、截至日期和来源以本地配置及数据质量提示为准。<br>
+        GPU 占比、供给增速等模型参数属于行业估算，可能与实际结果显著不同。<br>
+        评分、分析师观点和历史回测不构成投资建议、交易指令、收益承诺或未来表现保证。
     </div>
     <script>
         // --- 初始化: 所有 tab 先全量渲染 (均已 display:block), 渲染完后隐藏非首个 ---

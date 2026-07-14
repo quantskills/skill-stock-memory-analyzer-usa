@@ -803,15 +803,15 @@ def generate_memory_assessment(
     score = max(0, min(100, round(score)))
 
     if score >= 70:
-        rating = "🟢 强烈看好"
+        rating = "🟢 较强研究信号"
     elif score >= 55:
-        rating = "🟡 中性偏多"
+        rating = "🟡 偏强研究信号"
     elif score >= 45:
-        rating = "⚪ 中性"
+        rating = "⚪ 中性研究信号"
     elif score >= 30:
-        rating = "🟠 中性偏空"
+        rating = "🟠 偏弱研究信号"
     else:
-        rating = "🔴 谨慎"
+        rating = "🔴 较弱研究信号"
 
     return {
         "composite_score": score,
@@ -836,14 +836,14 @@ def _generate_observations(score: int, signals: list,
         hbm_note = f" | HBM短缺{g2026.get('gap_ratio_pct',0):.0f}%"
 
     if score >= 70:
-        observations.append(f"💡 综合各维度表现优异，存储周期+AI需求双重共振{hbm_note}")
+        observations.append(f"💡 多项研究指标偏正面；请结合数据新鲜度和 HBM 估算假设复核{hbm_note}")
     elif score >= 55:
-        observations.append(f"💡 整体偏多，关注价格拐点和HBM进展{hbm_note}")
+        observations.append(f"💡 正面与不确定指标并存；重点复核价格拐点和 HBM 进展{hbm_note}")
     elif score >= 45:
-        observations.append("💡 多空交织，建议观望等待更明确的信号")
+        observations.append("💡 指标分歧较大，需补充数据或等待下一期公开披露验证")
     elif score >= 30:
-        observations.append("💡 偏谨慎，关注 NAND/DRAM 价格何时企稳")
+        observations.append("💡 多项指标偏弱，应重点核验 NAND/DRAM 价格和库存变化")
     else:
-        observations.append("💡 周期处于不利阶段，等待反转信号再考虑布局")
+        observations.append("💡 风险或数据缺失信号占主导，需要进一步核验周期与财务数据")
 
     return observations

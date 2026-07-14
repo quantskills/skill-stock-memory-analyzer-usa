@@ -1,0 +1,10 @@
+---
+description: Load the stock-memory-analyzer research workflow for US memory-industry analysis.
+alwaysApply: false
+---
+
+# stock-memory-analyzer Cursor adapter
+
+Before analyzing MU, WDC, STX, SNDK, or the DRAM/NAND/HBM storage cycle, read `../SKILL.md` in full and follow it as the single source of truth.
+
+Keep the work research-only: disclose data freshness, sources, assumptions, and model estimates; do not generate investment advice, trading instructions, position sizing, or return guarantees. Do not expose credentials or private data.

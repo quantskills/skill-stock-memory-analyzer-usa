@@ -365,6 +365,7 @@ def analyze_single(ticker: str, period: str, output_path: str = None,
         data_freshness=freshness,
         hbm_exposure=hbm_exposure,
         backtest_result=backtest_result,
+        industry_data=industry_data,
     )
 
     # 保存
