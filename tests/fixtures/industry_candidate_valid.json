@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "refresh_id": "20260716T180000Z",
+  "created_at": "2026-07-16T16:00:00+08:00",
+  "modules": {
+    "gpu_specs": {
+      "status": "fresh",
+      "kind": "fact",
+      "data": {
+        "generations": [
+          {"name": "H200", "hbm_type": "HBM3e", "hbm_capacity_gb": 141, "ship_year": "2024", "status": "production"},
+          {"name": "B200", "hbm_type": "HBM3e", "hbm_capacity_gb": 180, "ship_year": "2025", "status": "production"},
+          {"name": "B300", "hbm_type": "HBM3e", "hbm_capacity_gb": 288, "ship_year": "2025", "status": "production"}
+        ]
+      },
+      "single_source": true,
+      "sources": [
+        {
+          "publisher": "NVIDIA",
+          "title": "HGX AI Factory components",
+          "url": "https://docs.nvidia.com/enterprise-reference-architectures/hgx-ai-factory/latest/components.html",
+          "final_url": "https://docs.nvidia.com/enterprise-reference-architectures/hgx-ai-factory/latest/components.html",
+          "region": "global",
+          "language": "en",
+          "source_type": "product_datasheet",
+          "published_at": null,
+          "as_of": "2026-07-16",
+          "accessed_at": "2026-07-16T16:00:00+08:00",
+          "verified_at": "2026-07-16T16:00:00+08:00",
+          "retrieved_this_run": true,
+          "evidence": "Official component table lists H200, B200 and B300 HBM capacity."
+        }
+      ]
+    },
+    "nvda_compute_revenue": {
+      "status": "fresh",
+      "kind": "fact",
+      "data": {"quarterly_revenue_b_usd": {"2026-Q1": 60.4}},
+      "sources": [
+        {
+          "publisher": "NVIDIA",
+          "title": "NVIDIA quarterly results",
+          "url": "https://investor.nvidia.com/news/press-release-details/2026/example/default.aspx",
+          "final_url": "https://investor.nvidia.com/news/press-release-details/2026/example/default.aspx",
+          "region": "global",
+          "language": "en",
+          "source_type": "company_ir",
+          "published_at": "2026-05-20",
+          "as_of": "2026-Q1",
+          "accessed_at": "2026-07-16T16:00:00+08:00",
+          "verified_at": "2026-07-16T16:00:00+08:00",
+          "retrieved_this_run": true,
+          "evidence": "Official results disclose Data Center Compute revenue."
+        },
+        {
+          "publisher": "SEC",
+          "title": "NVIDIA 10-Q",
+          "url": "https://www.sec.gov/Archives/edgar/data/1045810/example/nvda.htm",
+          "final_url": "https://www.sec.gov/Archives/edgar/data/1045810/example/nvda.htm",
+          "region": "regulatory",
+          "language": "en",
+          "source_type": "regulatory",
+          "published_at": "2026-05-20",
+          "as_of": "2026-Q1",
+          "accessed_at": "2026-07-16T16:00:00+08:00",
+          "verified_at": "2026-07-16T16:00:00+08:00",
+          "retrieved_this_run": true,
+          "evidence": "Regulatory filing corroborates the reporting period."
+        }
+      ]
+    },
+    "gpu_shipments": {
+      "status": "fresh",
+      "kind": "estimate",
+      "data": {
+        "quarterly_shipments_k": {"2026-Q1": {"low": 1050, "base": 1200, "high": 1400}},
+        "asp_per_gpu_k_usd": {"H200": 35, "B200": 45, "B300": 55}
+      },
+      "inputs": {"compute_revenue_b_usd": 60.4, "weighted_asp_k_usd": {"low": 43, "base": 50, "high": 57.5}},
+      "formula": "shipments_k = compute_revenue_b_usd * 1000000 / weighted_asp_k_usd",
+      "assumptions": ["Compute revenue is used as the revenue anchor.", "ASP is a model assumption."],
+      "limitations": ["NVIDIA does not disclose exact accelerator unit shipments."],
+      "confidence": "low",
+      "sources": [
+        {
+          "publisher": "NVIDIA",
+          "title": "NVIDIA quarterly results",
+          "url": "https://investor.nvidia.com/news/press-release-details/2026/example/default.aspx",
+          "final_url": "https://investor.nvidia.com/news/press-release-details/2026/example/default.aspx",
+          "region": "global",
+          "language": "en",
+          "source_type": "company_ir",
+          "published_at": "2026-05-20",
+          "as_of": "2026-Q1",
+          "accessed_at": "2026-07-16T16:00:00+08:00",
+          "verified_at": "2026-07-16T16:00:00+08:00",
+          "retrieved_this_run": true,
+          "evidence": "Official Compute revenue anchors the shipment estimate."
+        }
+      ]
+    },
+    "gpu_mix": {
+      "status": "fresh",
+      "kind": "estimate",
+      "data": {"ratios": {"2026": {"H200": 0.05, "B200": 0.45, "B300": 0.5}}},
+      "inputs": {"product_status": ["H200", "B200", "B300"]},
+      "formula": "sum(model_ratio) = 1",
+      "assumptions": ["Ramp language is converted into model weights."],
+      "limitations": ["NVIDIA does not disclose model unit mix."],
+      "confidence": "low",
+      "sources": [
+        {
+          "publisher": "NVIDIA",
+          "title": "NVIDIA China data center products",
+          "url": "https://www.nvidia.cn/data-center/products/",
+          "final_url": "https://www.nvidia.cn/data-center/products/",
+          "region": "cn",
+          "language": "zh-CN",
+          "source_type": "regional_product_page",
+          "published_at": null,
+          "as_of": "2026-07-16",
+          "accessed_at": "2026-07-16T16:00:00+08:00",
+          "verified_at": "2026-07-16T16:00:00+08:00",
+          "retrieved_this_run": true,
+          "evidence": "Official product lineup anchors the model mix assumptions."
+        }
+      ]
+    },
+    "hbm_supply": {
+      "status": "fresh",
+      "kind": "estimate",
+      "data": {
+        "parameters": {"base_supply_2024_m_gb": 450, "supply_growth": {"2024": 0, "2025": 0.45, "2026": 0.5}, "non_nvidia_factor": 1.3},
+        "estimated_supply_range_m_gb": {"2026": {"low": 850, "base": 979, "high": 1120}}
+      },
+      "inputs": {"supplier_ramp": "official qualitative disclosures", "advanced_packaging": "official capacity commentary"},
+      "formula": "supply = base_supply * cumulative_growth",
+      "assumptions": ["Supplier ramp language is mapped to a model growth range."],
+      "limitations": ["Suppliers do not disclose complete bit supply, yield, or customer allocation."],
+      "confidence": "low",
+      "sources": [
+        {
+          "publisher": "Micron",
+          "title": "Micron quarterly results",
+          "url": "https://investors.micron.com/quarterly-results",
+          "final_url": "https://investors.micron.com/quarterly-results",
+          "region": "global",
+          "language": "en",
+          "source_type": "company_ir",
+          "published_at": "2026-06-24",
+          "as_of": "2026-Q3",
+          "accessed_at": "2026-07-16T16:00:00+08:00",
+          "verified_at": "2026-07-16T16:00:00+08:00",
+          "retrieved_this_run": true,
+          "evidence": "Official results describe HBM volume shipments and investment."
+        },
+        {
+          "publisher": "TSMC",
+          "title": "TSMC investor relations",
+          "url": "https://investor.tsmc.com/schinese",
+          "final_url": "https://investor.tsmc.com/schinese",
+          "region": "asia",
+          "language": "zh-CN",
+          "source_type": "company_ir",
+          "published_at": null,
+          "as_of": "2026-Q1",
+          "accessed_at": "2026-07-16T16:00:00+08:00",
+          "verified_at": "2026-07-16T16:00:00+08:00",
+          "retrieved_this_run": true,
+          "evidence": "Official IR anchors advanced-packaging availability assumptions."
+        }
+      ]
+    }
+  }
+}

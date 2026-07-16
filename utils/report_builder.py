@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from utils.industry_refresh import build_industry_snapshot_html
 
 
 def _sfmt(val, fmt_spec=".2f", default="--"):
@@ -60,7 +61,9 @@ def build_report(ticker: str, company_name: str, report_date: str,
                  data_freshness: dict = None,
                  hbm_exposure: dict = None,
                  backtest_result: dict = None,
-                 industry_data: dict = None) -> str:
+                 industry_data: dict = None,
+                 industry_snapshot: dict = None,
+                 industry_run_mode: str = None) -> str:
     """
     生成完整 HTML 报告
 
@@ -79,6 +82,8 @@ def build_report(ticker: str, company_name: str, report_date: str,
 
     # 2.5 数据新鲜度提示
     sections.append(_data_freshness_bar(data_freshness))
+    if industry_snapshot:
+        sections.append(build_industry_snapshot_html(industry_snapshot, industry_run_mode or "fresh"))
     sections.append(_industry_provenance_bar(industry_data))
 
     # 3. KPI 仪表盘
@@ -1605,10 +1610,10 @@ def _assessment_footer(memory_assessment: dict, inv_analysis: dict, price_cycle:
         "行情/财务/估值 → panda_data(get_us_daily/get_fina_ex/mktfin_metric/pv_metric) | "
         "机构/内部人/分析师/股东 → panda_data 多接口 | "
         "DRAM/NAND价格 → WebSearch→TrendForce | "
-        "HBM市场/GPU出货 → WebSearch→NVDA季报 | "
+        "GPU规格/营收 → 本轮一手快照（NVIDIA IR/产品页/SEC） | "
         "下游需求拆分 → WebSearch→TrendForce/IDC | "
         "CapEx指引/技术节点 → WebSearch→公司财报/行业报告 | "
-        "HBM供给/GPU占比 → industry_data.json(WebSearch更新)"
+        "HBM供给/GPU出货与占比 → 本轮一手锚点模型估算"
     )
 
     return f"""
@@ -1718,7 +1723,7 @@ def _assessment_footer(memory_assessment: dict, inv_analysis: dict, price_cycle:
                     <tr><td style="padding:6px 10px;">库存周期</td><td style="padding:6px 10px;">20%</td><td style="padding:6px 10px;">🟢 get_fina_ex → inventory/COGS (实时)</td><td style="padding:6px 10px;">{inv_analysis.get('cycle_phase', 'N/A')}</td></tr>
                     <tr style="background:rgba(255,255,255,0.02);"><td style="padding:6px 10px;">价格周期</td><td style="padding:6px 10px;">25%</td><td style="padding:6px 10px;">WebSearch → TrendForce DRAM/NAND合约价</td><td style="padding:6px 10px;">{price_cycle.get('cycle_phase', 'N/A')}</td></tr>
                     <tr><td style="padding:6px 10px;">CapEx趋势</td><td style="padding:6px 10px;">15%</td><td style="padding:6px 10px;">🟢 get_fina_ex → cfs_capex_total (实时)</td><td style="padding:6px 10px;">{capex_analysis.get('expansion_phase', 'N/A') if capex_analysis else 'N/A'}</td></tr>
-                    <tr style="background:rgba(255,255,255,0.02);"><td style="padding:6px 10px;">🚀 HBM 供需</td><td style="padding:6px 10px;">20%</td><td style="padding:6px 10px;">WebSearch → NVDA季报 + 晶圆产能估算</td><td style="padding:6px 10px;">{memory_assessment.get('detail',{}).get('HBM供需','N/A')}</td></tr>
+                    <tr style="background:rgba(255,255,255,0.02);"><td style="padding:6px 10px;">🚀 HBM 供需</td><td style="padding:6px 10px;">20%</td><td style="padding:6px 10px;">本轮官方披露锚点 + 显式模型假设</td><td style="padding:6px 10px;">{memory_assessment.get('detail',{}).get('HBM供需','N/A')}</td></tr>
                     <tr><td style="padding:6px 10px;">🎯 下游需求</td><td style="padding:6px 10px;">15%</td><td style="padding:6px 10px;">WebSearch → TrendForce/IDC 终端拆分</td><td style="padding:6px 10px;">{memory_assessment.get('detail',{}).get('下游需求','N/A')}</td></tr>
                     <tr style="background:rgba(255,255,255,0.02);"><td style="padding:6px 10px;">🔬 技术节点</td><td style="padding:6px 10px;">5%</td><td style="padding:6px 10px;">WebSearch → 行业路线图</td><td style="padding:6px 10px;">{memory_assessment.get('detail',{}).get('技术节点','N/A')}</td></tr>
                 </table>
@@ -1990,7 +1995,7 @@ def _fig_hbm_gpu_demand(hbm_demand: dict = None, hbm_exposure: dict = None) -> s
             f"<div style='font-size:0.9rem; font-weight:700; color:#e1e8ed; margin:6px 0;'>需求 {demand:.0f}M GB</div>"
             f"<div style='font-size:0.9rem; color:#8899aa;'>供给 {supply:.0f}M GB</div>"
             f"<div style='font-size:0.85rem; font-weight:700; color:{yr_color}; margin-top:4px;'>" +
-            (f"短缺 {gap_pct:.1f}% — {yr_status}" if gap_pct > 0 else f"盈余 {abs(gap_pct):.1f}% — {yr_status}") +
+            (f"模型缺口 {gap_pct:.1f}% — {yr_status}" if gap_pct > 0 else f"模型盈余 {abs(gap_pct):.1f}% — {yr_status}") +
             f"</div>"
             f"</div>"
         )

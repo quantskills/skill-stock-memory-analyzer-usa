@@ -547,7 +547,7 @@ def analyze_hbm_gpu_demand(industry_data: dict) -> dict:
             "name": gen["name"],
             "hbm_type": gen["hbm_type"],
             "capacity_gb": gen["hbm_capacity_gb"],
-            "stacks": gen["stacks"],
+            "stacks": gen.get("stacks"),
             "ship_year": gen["ship_year"],
             "status": gen["status"],
             "next_gen_growth_pct": round(capacity_growth, 0) if capacity_growth else None
@@ -558,19 +558,18 @@ def analyze_hbm_gpu_demand(industry_data: dict) -> dict:
 
     if gap_status == "供给紧张":
         assessment = (
-            f"HBM 市场处于供给紧张状态（短缺{latest_gap.get('gap_ratio_pct', 0):.1f}%）。"
-            f"GPU 每代 HBM 容量增长 50-100%，叠加 AMD/Google/AWS 等非 NVIDIA 加速器需求，"
-            f"晶圆+CoWoS 先进封装产能扩张受限。SK海力士已确认 2026 年 HBM 产能售罄，"
-            f"利好 HBM 供应商（SK海力士、三星、美光）的定价权和毛利率。"
+            f"在当前模型假设下，HBM 供给缺口估算为 {latest_gap.get('gap_ratio_pct', 0):.1f}%，"
+            f"对应“供给紧张”情景。该结果由 GPU 营收、ASP、型号占比和供应增速推导，"
+            f"不是供应商直接披露的完整行业位元供给；应结合报告中的范围、假设和置信度解读。"
         )
     elif gap_status == "紧平衡":
         assessment = (
-            f"HBM 供需处于紧平衡状态（供需差{latest_gap.get('gap_ratio_pct', 0):.1f}%，"
-            f"正值=短缺，负值=过剩）。"
-            f"AI 加速器需求强劲增长，产能扩张速度勉强跟上，供应商议价能力依然较强。"
+            f"在当前模型假设下，HBM 供需差估算为 {latest_gap.get('gap_ratio_pct', 0):.1f}%"
+            f"（正值=短缺，负值=过剩），对应“紧平衡”情景。"
+            f"该结果不是公司披露事实，需结合输入范围与敏感性复核。"
         )
     else:
-        assessment = "HBM 供给充裕，需关注价格竞争风险。"
+        assessment = "在当前模型假设下，HBM 供给对应充裕情景；该判断不是公司披露事实。"
 
     return {
         "available": True,
@@ -766,8 +765,8 @@ def generate_memory_assessment(
         hbm_score = int(base_hbm * hbm_factor)
         score += hbm_score
         tier_tag = "直接受益" if hbm_factor >= 1.0 else "间接受益"
-        signals.append(f"HBM供需: {gap_status} {tier_tag} ({'+' if hbm_score >= 0 else ''}{hbm_score})")
-        detail["HBM供需"] = f"{gap_status} (短缺{gap_pct:.0f}%) | 基础{base_hbm:+d}×{hbm_factor}={hbm_score:+d}"
+        signals.append(f"HBM供需模型: {gap_status} {tier_tag} ({'+' if hbm_score >= 0 else ''}{hbm_score})")
+        detail["HBM供需"] = f"模型估算 {gap_status} (缺口{gap_pct:.0f}%) | 基础{base_hbm:+d}×{hbm_factor}={hbm_score:+d}"
     else:
         detail["HBM供需"] = "数据不可用 | 得分0"
 
@@ -833,7 +832,7 @@ def _generate_observations(score: int, signals: list,
     if hbm_demand and hbm_demand.get("available"):
         gaps = hbm_demand.get("yearly_gaps", {})
         g2026 = gaps.get("2026", {})
-        hbm_note = f" | HBM短缺{g2026.get('gap_ratio_pct',0):.0f}%"
+        hbm_note = f" | HBM模型缺口{g2026.get('gap_ratio_pct',0):.0f}%"
 
     if score >= 70:
         observations.append(f"💡 多项研究指标偏正面；请结合数据新鲜度和 HBM 估算假设复核{hbm_note}")

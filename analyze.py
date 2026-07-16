@@ -3,8 +3,11 @@
 存储芯片深度分析 - 主入口 (基于 panda_data)
 
 用法:
-    python analyze.py --ticker MU --username 86xxx --password xxx
-    python analyze.py --ticker MU,WDC,STX --username 86xxx --password xxx
+    # Windows
+    powershell -ExecutionPolicy Bypass -File scripts/run_with_prompt.ps1 -Ticker MU -IndustryRunManifest output/runtime/industry_run.json
+    # macOS
+    bash scripts/run_with_prompt.sh --ticker MU --period 5y --industry-run-manifest output/runtime/industry_run.json
+    python analyze.py --ticker MU --industry-run-manifest output/runtime/industry_run.json
 """
 import argparse
 import io
@@ -24,7 +27,12 @@ if sys.stdout.encoding != 'utf-8':
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, ROOT_DIR)
 
-from utils.preflight import run_preflight
+from utils.preflight import report_dependency_status, run_preflight
+from utils.industry_refresh import (
+    RunManifestError,
+    apply_runtime_snapshot,
+    claim_run_manifest,
+)
 
 
 def load_runtime_dependencies() -> None:
@@ -83,9 +91,21 @@ def _fmt(val, suffix="", default="--"):
 
 
 def analyze_single(ticker: str, period: str, output_path: str = None,
-                   username: str = None, password: str = None) -> str:
+                   username: str = None, password: str = None,
+                   industry_context: dict = None) -> str:
     """对单只股票执行完整分析流程"""
     ticker = ticker.strip().upper()
+
+    # 行业快照门禁必须先于登录，避免在公开行业数据未准备好时请求凭据。
+    if not industry_context or not isinstance(industry_context.get("snapshot"), dict):
+        raise RuntimeError("缺少有效的行业数据运行授权")
+    industry_snapshot = industry_context["snapshot"]
+    industry_run_mode = industry_context.get("mode", "")
+    industry_data = apply_runtime_snapshot(load_industry_data(), industry_snapshot)
+    freshness = get_data_freshness(
+        snapshot=industry_snapshot,
+        run_mode=industry_run_mode,
+    )
 
     # 认证
     if username and password:
@@ -98,8 +118,8 @@ def analyze_single(ticker: str, period: str, output_path: str = None,
     else:
         raise RuntimeError(
             "未提供 panda_data 账号信息。\n"
-            "用法: python analyze.py --ticker MU --username 138xxxx --password xxx\n"
-            "或设置环境变量: PANDA_DATA_USERNAME / PANDA_DATA_PASSWORD"
+            "请通过平台对应的 scripts/run_with_prompt.ps1 或 "
+            "scripts/run_with_prompt.sh 启动分析"
         )
 
     print(f"\n{'=' * 60}")
@@ -137,16 +157,14 @@ def analyze_single(ticker: str, period: str, output_path: str = None,
     except Exception:
         pass
 
-    # 4. 行业数据（先检查新鲜度）
-    freshness = get_data_freshness()
+    # 4. 行业数据（GPU/HBM 使用本轮快照，其余模块沿用静态配置）
     stale_sections = [info["label"] for key, info in freshness.items()
                       if info["status"] in ("stale", "outdated", "missing", "unknown")]
     if stale_sections:
         print(f"  [WARNING] 以下行业数据可能已过时: {', '.join(stale_sections)}")
         print(f"            建议运行: python utils/data_updater.py freshness 查看详情")
-        print(f"            或通过 WebSearch 获取最新数据后更新 industry_data.json")
-
-    industry_data = load_industry_data()
+    if industry_run_mode == "cached-authorized":
+        print("  [WARNING] 本次经用户明确授权使用上一份有效 GPU/HBM 行业快照")
 
     # 对标 (仅用 panda_data 支持的股票)
     memory_peers_cfg = industry_data.get("memory_peers", {})
@@ -365,6 +383,8 @@ def analyze_single(ticker: str, period: str, output_path: str = None,
         hbm_exposure=hbm_exposure,
         backtest_result=backtest_result,
         industry_data=industry_data,
+        industry_snapshot=industry_snapshot,
+        industry_run_mode=industry_run_mode,
     )
 
     # 保存
@@ -393,57 +413,83 @@ def main():
         epilog="""
 示例:
   python analyze.py --check-env
+  python analyze.py --check-deps
   python analyze.py --install-deps --check-env
-  # 推荐：先设置 PANDA_DATA_USERNAME / PANDA_DATA_PASSWORD
-  python analyze.py --ticker MU
-  python analyze.py --ticker MU --username 86xxx --password xxx
-  python analyze.py --ticker MU,WDC,STX --username 86xxx --password xxx
-  python analyze.py --ticker MU -u 86xxx -p xxx --period 5y
+  # Windows：使用可见的临时 PowerShell 窗口在本机输入凭据
+  powershell -ExecutionPolicy Bypass -File scripts/run_with_prompt.ps1 -Ticker MU -IndustryRunManifest output/runtime/industry_run.json
+  # macOS：使用可见的 Terminal.app 窗口
+  bash scripts/run_with_prompt.sh --ticker MU --period 5y --industry-run-manifest output/runtime/industry_run.json
+  # 也可在已设置临时环境变量的终端中运行
+  python analyze.py --ticker MU --industry-run-manifest output/runtime/industry_run.json
+  python analyze.py --ticker MU --period 5y --industry-run-manifest output/runtime/industry_run.json
         """
     )
     parser.add_argument("--ticker", "-t", type=str, default=None,
                         help="股票代码，多个用逗号分隔 (如 MU,WDC,STX)")
-    parser.add_argument("--username", "-u", type=str, default=None,
-                        help="panda_data 账号 (86手机号)")
-    parser.add_argument("--password", "-p", type=str, default=None,
-                        help="panda_data 密码")
     parser.add_argument("--period", type=str, default="5y",
                         help="历史数据时间跨度 (1y/2y/5y/10y/max)，默认5y")
     parser.add_argument("--output", "-o", type=str, default=None,
                         help="自定义输出路径")
+    parser.add_argument("--industry-run-manifest", type=str, default=None,
+                        help="本轮已验证的一次性行业数据运行清单")
     parser.add_argument("--check-env", action="store_true",
                         help="检查 panda_data 账号、Python 依赖与网络要求后退出")
+    parser.add_argument("--check-deps", action="store_true",
+                        help="仅检查 Python 依赖，不读取或要求 panda_data 凭据")
     parser.add_argument("--install-deps", action="store_true",
                         help="显式同意通过 requirements.txt 安装缺失依赖")
 
     args = parser.parse_args()
 
+    if args.check_deps:
+        raise SystemExit(0 if report_dependency_status() else 1)
+
     # 也可以从环境变量读取
-    username = args.username or os.environ.get("PANDA_DATA_USERNAME")
-    password = args.password or os.environ.get("PANDA_DATA_PASSWORD")
+    username = os.environ.get("PANDA_DATA_USERNAME")
+    password = os.environ.get("PANDA_DATA_PASSWORD")
+
+    if args.check_env:
+        preflight_ok = run_preflight(
+            username,
+            password,
+            install_deps=args.install_deps,
+            check_only=True,
+        )
+        raise SystemExit(0 if preflight_ok else 1)
+
+    if not args.ticker:
+        parser.error("--ticker is required unless --check-env is used")
+    tickers = [t.strip().upper() for t in args.ticker.split(",") if t.strip()]
+    if len(tickers) != 1:
+        parser.error("每次分析必须且只能指定一只股票")
+    if not args.industry_run_manifest:
+        print("[INDUSTRY] blocked error=manifest_required")
+        raise SystemExit(5)
+    try:
+        industry_context = claim_run_manifest(
+            args.industry_run_manifest,
+            tickers[0],
+        )
+    except RunManifestError as exc:
+        print(f"[INDUSTRY] blocked error={exc.code}")
+        raise SystemExit(5)
 
     preflight_ok = run_preflight(
         username,
         password,
         install_deps=args.install_deps,
-        check_only=args.check_env,
+        check_only=False,
     )
-    if args.check_env:
-        raise SystemExit(0 if preflight_ok else 1)
     if not preflight_ok:
         raise SystemExit(1)
-    if not args.ticker:
-        parser.error("--ticker is required unless --check-env is used")
 
     load_runtime_dependencies()
-
-    tickers = [t.strip() for t in args.ticker.split(",")]
 
     results = []
     for t in tickers:
         try:
             filepath = analyze_single(t, args.period, args.output if len(tickers) == 1 else None,
-                                       username, password)
+                                       username, password, industry_context)
             results.append((t, filepath, "success"))
         except Exception:
             # 不打印异常原文或堆栈，避免第三方异常意外携带认证信息。

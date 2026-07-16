@@ -24,6 +24,17 @@ def missing_packages(packages: Iterable[str] = REQUIRED_PACKAGES) -> list[str]:
     return [package for package in packages if importlib.util.find_spec(package) is None]
 
 
+def report_dependency_status() -> bool:
+    """Print dependency readiness without requesting or inspecting credentials."""
+    missing = missing_packages()
+    if missing:
+        print(f"[SETUP] 缺少 Python 依赖: {', '.join(missing)}")
+        print("  安装命令: python -m pip install -r requirements.txt")
+        return False
+    print("[SETUP] Python 依赖: 就绪")
+    return True
+
+
 def _print_setup_guidance(missing: list[str], credentials_ready: bool) -> None:
     print("\n[SETUP] stock-memory-analyzer 环境检查")
     if missing:
@@ -36,14 +47,12 @@ def _print_setup_guidance(missing: list[str], credentials_ready: bool) -> None:
         print("  Python 依赖: 就绪")
 
     if credentials_ready:
-        print("  panda_data 账号: 已从参数或环境变量检测到")
+        print("  panda_data 账号: 已由本地临时进程检测到")
     else:
         print("  panda_data 账号: 未检测到")
-        print("  推荐使用环境变量，避免将密码留在命令历史中:")
-        print("    PowerShell: $env:PANDA_DATA_USERNAME='86xxxxxxxxxxx'")
-        print("                $env:PANDA_DATA_PASSWORD='your_password'")
-        print("    CMD:        set \"PANDA_DATA_USERNAME=86xxxxxxxxxxx\"")
-        print("                set \"PANDA_DATA_PASSWORD=your_password\"")
+        print("  推荐通过可见的本机临时终端窗口输入凭据:")
+        print("    Windows: powershell -ExecutionPolicy Bypass -File scripts/run_with_prompt.ps1 -Ticker MU")
+        print("    macOS:  bash scripts/run_with_prompt.sh --ticker MU --period 5y")
 
     print("  网络要求: 需要允许 Python 访问 panda_data API；受限沙箱/企业网络请授予网络权限后重试。")
     print("  报告图表: 首次打开 HTML 时需要访问 cdn.plot.ly；离线环境可正常查看文本和表格。\n")

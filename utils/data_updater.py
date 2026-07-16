@@ -10,7 +10,7 @@
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -59,17 +59,20 @@ def _record_provenance(section_path: tuple, source: str, as_of: str) -> None:
     _save_config(config)
 
 
-def get_data_freshness() -> dict:
+def get_data_freshness(snapshot: dict = None, run_mode: str = None,
+                       now: datetime = None) -> dict:
     """检查各模块数据新鲜度，返回距今天数"""
     config = _load_config()
-    today = datetime.now()
+    today = now or datetime.now(timezone.utc)
+    if today.tzinfo is None:
+        today = today.replace(tzinfo=timezone.utc)
+    static_today = today.replace(tzinfo=None)
     freshness = {}
 
     sections = {
         "dram_contract_price_qoq": "DRAM 合约价",
         "nand_contract_price_qoq": "NAND 合约价",
         "hbm_market": "HBM 市场数据",
-        "gpu_hbm_specs": "GPU HBM 规格",
         "downstream_demand": "下游需求数据",
         "capex_guidance": "CapEx 指引",
         "technology_nodes": "技术节点",
@@ -86,7 +89,7 @@ def get_data_freshness() -> dict:
             continue
         try:
             updated_date = datetime.strptime(updated_str, "%Y-%m-%d")
-            age = (today - updated_date).days
+            age = (static_today - updated_date).days
             if age <= 7:
                 status = "fresh"
             elif age <= 30:
@@ -96,6 +99,48 @@ def get_data_freshness() -> dict:
             freshness[key] = {"label": label, "status": status, "age_days": age}
         except ValueError:
             freshness[key] = {"label": label, "status": "unknown", "age_days": None}
+
+    if snapshot:
+        labels = {
+            "gpu_specs": "GPU HBM 规格",
+            "nvda_compute_revenue": "NVDA Compute 营收",
+            "gpu_shipments": "GPU 出货量估算",
+            "gpu_mix": "GPU 型号占比估算",
+            "hbm_supply": "HBM 供给估算",
+        }
+        for key, label in labels.items():
+            module = snapshot.get("modules", {}).get(key, {})
+            verified_values = []
+            for source in module.get("sources", []):
+                value = source.get("verified_at")
+                if not value:
+                    continue
+                try:
+                    parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+                    if parsed.tzinfo is None:
+                        parsed = parsed.replace(tzinfo=timezone.utc)
+                    verified_values.append(parsed.astimezone(timezone.utc))
+                except ValueError:
+                    continue
+            latest = max(verified_values) if verified_values else None
+            age = max(0, (today - latest).days) if latest else None
+            status = run_mode if run_mode in ("fresh", "cached-authorized") else "unknown"
+            freshness[key] = {
+                "label": label,
+                "status": status,
+                "age_days": age,
+                "verified_at": latest.isoformat() if latest else None,
+                "kind": module.get("kind"),
+            }
+    else:
+        # 仅兼容手动 freshness 命令；正式分析必须传入本轮快照。
+        section = config.get("gpu_hbm_specs", {})
+        updated_str = section.get("_last_updated", "") if isinstance(section, dict) else ""
+        freshness["gpu_hbm_specs"] = {
+            "label": "GPU HBM 规格",
+            "status": "unknown" if not updated_str else "stale",
+            "age_days": None,
+        }
 
     return freshness
 

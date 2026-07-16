@@ -28,52 +28,68 @@
 
 ### 1. 安装依赖
 
-本 Skill 使用 `panda_data` 获取行情、财务和估值数据；首次使用需安装 Python 依赖：
+本 Skill 使用 `panda_data` 获取行情、财务和估值数据；首次使用需安装 Python 依赖。
+
+Windows PowerShell：
 
 ```powershell
 cd D:\PandaAi_skills\.claude\skills\stock-memory-analyzer
 python -m pip install -r requirements.txt
+python analyze.py --check-deps
+```
+
+macOS Terminal：
+
+```bash
+cd /path/to/stock-memory-analyzer
+python3 -m pip install -r requirements.txt
+python3 analyze.py --check-deps
 ```
 
 如遇网络或权限问题，请确认 Python 可以访问包仓库和 `panda_data` API 后重试。
 
-### 2. 登录 panda_data
+### 2. 在本机临时窗口登录 panda_data
 
-需要可用的 `panda_data` 账号才能生成正式报告。
+需要可用的 `panda_data` 账号才能生成正式报告。请勿在聊天中发送账号或密码；先在对话中选择一只股票，例如“分析 MU”。
 
-在支持此 Skill 的聊天环境中，可以直接发送以下格式，并同时指定一只股票：
+在打开登录窗口之前，Skill 会从 NVIDIA、SEC、Micron、SK hynix、Samsung 和 TSMC 的国内外官方入口重新核验 GPU 规格、NVIDIA Compute 营收，并重新计算 GPU 出货量、型号占比和 HBM 供给估算。报告分别展示事实、模型估算、`as_of` 和本轮 `verified_at`。某个区域入口不可达时会尝试同一发布方的其他官方入口。
+
+刷新失败时，Skill 会列出失败模块和上一份有效快照的日期，并询问是否允许本次使用旧数据。只有用户明确同意且旧快照完整有效时才继续；拒绝、未回复或没有有效旧快照都会停止，不会静默回退。
+
+Skill 会在启动登录窗口前提示：
 
 ```text
-账号：你的 panda_data 账号；密码：你的 panda_data 密码；分析 MU
+由程序在本机提示输入账号并隐藏密码字符。Windows 将打开 PowerShell，macOS 将打开 Terminal.app。请在弹出的窗口完成输入，完成后窗口会自动关闭，我会继续检查报告结果。
 ```
 
-Skill 只在本次分析中使用凭据，不在回复、HTML 报告、文件或程序日志中输出其具体内容。
+随后程序会根据操作系统打开可见的临时窗口：Windows 使用 PowerShell，macOS 使用 Terminal.app。账号由用户在本机输入，密码字符隐藏。凭据仅存在于该子进程，不写入聊天、文件、HTML 报告、命令历史或程序日志；分析结束后会清除凭据并自动关闭窗口。
 
-也可以在本地 PowerShell 通过环境变量登录：
+也可以从项目目录手动启动同一流程。
+
+Windows：
 
 ```powershell
-$env:PANDA_DATA_USERNAME = 'your_username'
-$env:PANDA_DATA_PASSWORD = 'your_password'
+powershell -ExecutionPolicy Bypass -File scripts/run_with_prompt.ps1 -Ticker MU -Period 5y -IndustryRunManifest output/runtime/industry_run.json
 ```
 
-先检查依赖和凭据是否就绪：
+macOS：
 
-```powershell
-python analyze.py --check-env
+```bash
+bash scripts/run_with_prompt.sh --ticker MU --period 5y --industry-run-manifest output/runtime/industry_run.json
 ```
 
 ### 3. 生成 HTML 研究报告
 
-登录验证通过后，运行单只标的分析。默认使用 5 年历史窗口：
-
-```powershell
-python analyze.py --ticker MU
-```
+在弹出的窗口完成登录后，脚本会自动分析所选股票并生成报告，无需再次输入命令。默认使用 5 年历史窗口。
 
 如需其他已支持标的，将 `MU` 替换为 `SNDK`、`WDC` 或 `STX`。可选的历史窗口包括 `1y`、`2y`、`5y`、`10y` 和 `max`：
 
 ```powershell
-python analyze.py --ticker SNDK --period 2y
+powershell -ExecutionPolicy Bypass -File scripts/run_with_prompt.ps1 -Ticker SNDK -Period 2y -IndustryRunManifest output/runtime/industry_run.json
+```
+
+```bash
+bash scripts/run_with_prompt.sh --ticker SNDK --period 2y --industry-run-manifest output/runtime/industry_run.json
 ```
 
 ### 4. 查看报告
@@ -84,13 +100,13 @@ python analyze.py --ticker SNDK --period 2y
 output/MU_analysis_YYYYMMDD_HHMMSS.html
 ```
 
-使用浏览器打开该 HTML 文件即可查看行情与财务概览、库存与价格周期、HBM / 下游需求、技术节点、同业对标、数据新鲜度提示及研究信号拆解。报告中的估算和历史诊断均有局限说明，不代表未来表现。
+使用浏览器打开该 HTML 文件即可查看行情与财务概览、库存与价格周期、HBM / 下游需求、技术节点、同业对标、数据新鲜度提示及研究信号拆解。GPU/HBM 来源面板会展示官方链接、发布日期、数据截止期、本轮核验时间、估算公式和假设；使用旧快照时报告顶部会显示警告。报告中的估算和历史诊断均有局限说明，不代表未来表现。
 
 ## 常见问题
 
 **提示缺少依赖怎么办？**
 
-执行 `python -m pip install -r requirements.txt`，随后再次运行 `python analyze.py --check-env`。
+Windows 执行 `python -m pip install -r requirements.txt`；macOS 执行 `python3 -m pip install -r requirements.txt`。随后重新启动对应的 `run_with_prompt` 脚本。
 
 **可以不登录直接使用公开网页数据吗？**
 
@@ -98,7 +114,11 @@ output/MU_analysis_YYYYMMDD_HHMMSS.html
 
 **密码会出现在报告或运行日志中吗？**
 
-不会。Skill 与脚本都禁止回显账号、密码和 token；请勿将凭据写入代码、配置文件或提交到仓库。
+不会。密码输入字符在临时 PowerShell 或 Terminal.app 窗口中隐藏；Skill 与脚本禁止在聊天、报告、文件或日志中回显账号、密码和 token。请勿将凭据写入代码、配置文件或提交到仓库。
+
+**macOS 第一次弹窗时为什么出现权限提示？**
+
+macOS 可能首次请求允许当前应用自动化控制 Terminal.app；这是打开可见登录窗口所需的系统权限。拒绝后不会弹出窗口，可在“系统设置 → 隐私与安全性 → 自动化”中重新授权。
 
 ## 来源与维护
 
