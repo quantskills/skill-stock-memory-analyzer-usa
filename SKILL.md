@@ -14,6 +14,48 @@ metadata:
   maintainer: repository contributors
 ---
 
+```json qsh-form
+{
+  "version": 1,
+  "task": {
+    "placeholder": "补充希望研究的存储周期、财务、估值、HBM、NAND、HDD 或同业对标问题"
+  },
+  "fields": [
+    {
+      "key": "symbol",
+      "label": "美股代码",
+      "type": "select",
+      "required": true,
+      "options": [
+        { "value": "MU", "label": "MU｜Micron Technology" },
+        { "value": "SNDK", "label": "SNDK｜Sandisk" },
+        { "value": "WDC", "label": "WDC｜Western Digital" },
+        { "value": "STX", "label": "STX｜Seagate Technology" }
+      ]
+    },
+    {
+      "key": "period",
+      "label": "历史窗口",
+      "type": "select",
+      "default": "5y",
+      "options": [
+        { "value": "1y", "label": "近 1 年" },
+        { "value": "3y", "label": "近 3 年" },
+        { "value": "5y", "label": "近 5 年" },
+        { "value": "10y", "label": "近 10 年" }
+      ]
+    },
+    {
+      "key": "focus",
+      "label": "研究重点",
+      "type": "text",
+      "placeholder": "如：HBM 供需、NAND 价格周期、数据中心 HDD、CapEx"
+    }
+  ],
+  "prompt_template": "{{#task}}任务与材料：\n{{task}}\n\n{{/task}}{{#attachments}}用户上传的材料（已放入工作区）：\n{{attachments}}\n\n{{/attachments}}请准备分析美股存储公司 {{symbol}}，历史窗口为 {{period}}。{{#focus}}研究重点：{{focus}}。{{/focus}}正式分析前必须完成 panda_data 环境预检与登录验证；不得记录、复述或写入任何凭据，登录失败时停止且不以网页数据替代。验证成功后区分 panda_data 事实、带日期来源的公开行业资料和明确标注的模型估算，披露数据新鲜度、缺失项、评分假设与回测局限，输出中文 HTML 研究报告。"
+}
+```
+
 # 美股存储芯片研究分析
 
 使用本技能研究美股存储产业链公司，输出可复核的行业与公司分析。它将可用数据分成三类：
