@@ -437,8 +437,18 @@ def analyze_hbm_gpu_demand(industry_data: dict) -> dict:
             m.get("B200", 0), m.get("B300", 0), m.get("Rubin", 0)
         )
 
-    # GPU 各代规格 (NVIDIA 官方白皮书)
-    hbm_per_gen = [80, 141, 192, 288, 384]  # H100, H200, B200, B300, Rubin
+    # GPU 各代规格来自本轮 NVIDIA 官方快照，不再使用硬编码容量。
+    capacity_by_name = {
+        str(generation.get("name", "")): float(generation.get("hbm_capacity_gb", 0) or 0)
+        for generation in generations
+    }
+    hbm_per_gen = [
+        capacity_by_name.get("H100", 80),
+        capacity_by_name.get("H200", 141),
+        capacity_by_name.get("B200", 180),
+        capacity_by_name.get("B300", 288),
+        capacity_by_name.get("Rubin", 0),
+    ]
     asp_per_gen = [
         asp_data.get("H100", 25),
         asp_data.get("H200", 35),
@@ -484,7 +494,7 @@ def analyze_hbm_gpu_demand(industry_data: dict) -> dict:
     cumulative = base_supply_2024
     for yr in ["2024", "2025", "2026"]:
         yr_int = int(yr)
-        growth = supply_growth.get(yr_int, 0.5)
+        growth = supply_growth.get(str(yr), supply_growth.get(yr_int, 0.5))
         if yr == "2024":
             supply = base_supply_2024
         else:

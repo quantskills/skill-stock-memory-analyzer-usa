@@ -414,8 +414,11 @@ def apply_runtime_snapshot(base: dict[str, Any], snapshot: dict[str, Any]) -> di
         "_last_updated": max(verified_values) if verified_values else snapshot["created_at"],
         "generations": copy.deepcopy(specs_data["generations"]),
         "nvda_quarterly_revenue": {
-            "_note": "Official Compute revenue; unit: USD billions",
-            **copy.deepcopy(revenue_data["quarterly_revenue_b_usd"]),
+            "_note": "Official Compute revenue; legacy model unit: USD 100 millions",
+            **{
+                period: float(value) * 10
+                for period, value in revenue_data["quarterly_revenue_b_usd"].items()
+            },
         },
         "asp_per_gpu_k_usd": {
             "_note": "Model assumption; unit: USD thousands",

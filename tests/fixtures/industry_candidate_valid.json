@@ -77,7 +77,7 @@
         "asp_per_gpu_k_usd": {"H200": 35, "B200": 45, "B300": 55}
       },
       "inputs": {"compute_revenue_b_usd": 60.4, "weighted_asp_k_usd": {"low": 43, "base": 50, "high": 57.5}},
-      "formula": "shipments_k = compute_revenue_b_usd * 1000000 / weighted_asp_k_usd",
+      "formula": "shipments_k = compute_revenue_b_usd * 1000 / weighted_asp_k_usd",
       "assumptions": ["Compute revenue is used as the revenue anchor.", "ASP is a model assumption."],
       "limitations": ["NVIDIA does not disclose exact accelerator unit shipments."],
       "confidence": "low",

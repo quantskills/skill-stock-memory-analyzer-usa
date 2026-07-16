@@ -112,6 +112,14 @@ class SnapshotStorageTests(unittest.TestCase):
         self.assertEqual(result["dram_contract_price_qoq"], base["dram_contract_price_qoq"])
         self.assertEqual(result["gpu_hbm_specs"]["generations"][1]["hbm_capacity_gb"], 180)
         self.assertIn("nvda_quarterly_revenue", result["gpu_hbm_specs"])
+        self.assertEqual(result["gpu_hbm_specs"]["nvda_quarterly_revenue"]["2026-Q1"], 604)
+
+    def test_shipment_formula_uses_consistent_units(self):
+        formula = valid_candidate()["modules"]["gpu_shipments"]["formula"]
+        self.assertEqual(
+            formula,
+            "shipments_k = compute_revenue_b_usd * 1000 / weighted_asp_k_usd",
+        )
 
     def test_runtime_freshness_uses_module_verification(self):
         freshness = get_data_freshness(snapshot=valid_candidate(), run_mode="fresh", now=NOW)
