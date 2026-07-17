@@ -10,6 +10,7 @@ class SkillContractTests(unittest.TestCase):
     def setUpClass(cls):
         cls.skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
         cls.readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        cls.readme_en = (ROOT / "README.en.md").read_text(encoding="utf-8")
 
     def test_refresh_precedes_local_login(self):
         self.assertIn("五个必需模块", self.skill)
@@ -52,6 +53,32 @@ class SkillContractTests(unittest.TestCase):
 
         self.assertIn("不是买卖建议、目标价、上涨概率或收益承诺", self.readme)
         self.assertIn("相关性诊断", self.readme)
+
+    def test_english_readme_explains_evaluation_model(self):
+        required_sections = (
+            "## Core evaluation logic",
+            "### Layer 1: Memory-cycle score",
+            "### Layer 2: Final research signal",
+            "## Evaluation dimensions",
+            "## Skill highlights",
+        )
+        for section in required_sections:
+            self.assertIn(section, self.readme_en)
+
+        for formula_term in (
+            "0.10 × short-term technicals",
+            "0.25 × memory cycle",
+            "0.12 × analyst consensus",
+            "financial-quality adjustment",
+            "clamp(S, 10, 95)",
+        ):
+            self.assertIn(formula_term, self.readme_en)
+
+        self.assertIn(
+            "not a buy or sell recommendation, price target, probability of appreciation, or return guarantee",
+            self.readme_en,
+        )
+        self.assertIn("correlation diagnostic", self.readme_en)
 
 
 if __name__ == "__main__":

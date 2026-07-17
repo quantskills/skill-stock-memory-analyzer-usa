@@ -24,6 +24,87 @@ The current version supports the following US-listed storage companies:
 
 Choose one ticker for each full analysis. `WDC` and `STX` are HDD storage-infrastructure companies, so the report does not directly apply DRAM or HBM conclusions to them.
 
+## Core evaluation logic
+
+The report uses a two-layer evaluation model. It first combines memory-industry cycle signals into a memory-cycle score, then combines that score with short-term technicals, analyst consensus, company and shareholder activity, peer valuation, and financial quality to produce the final research signal. Market, financial, and valuation data come from `panda_data`; the GPU/HBM modules are anchored to official sources verified for the current run. GPU shipments, model mix, and HBM supply that are not directly disclosed are explicitly labeled as model estimates.
+
+### Layer 1: Memory-cycle score
+
+The memory-cycle score starts at 50, applies adjustments from six memory-specific modules, and is then bounded to `0–100`:
+
+```text
+C = clamp(50 + Δinventory + Δpricing + ΔCapEx + ΔHBM + Δend-market + Δtechnology, 0, 100)
+```
+
+| Module | Main rule in the current implementation | Score contribution |
+| --- | --- | --- |
+| Inventory cycle | Recent inventory-days direction and its position relative to the historical average | `+20 / +10 / 0 / -10 / -20` |
+| DRAM/NAND pricing cycle | Recent contract-price direction, cross-checked and adjusted with the company's gross-margin trend | `+25 / +12 / 0 / -12 / -25` |
+| CapEx | Annual capital-expenditure growth classified as aggressive expansion, moderate expansion, maintenance, or contraction | `+12 / +6 / 0 / -6` |
+| HBM supply and demand | NVIDIA Compute revenue, assumed GPU ASP and model mix, HBM per GPU, and supply parameters form a gap model | A base score for shortage, tight balance, or ample supply multiplied by the company's HBM-exposure factor |
+| End-market demand | DRAM, NAND, HBM, and HDD industry growth weighted by the company's revenue mix | `+12 / +6 / +2 / -5` |
+| Technology nodes | The company's DRAM and NAND node position | `0–7` |
+
+The HBM-exposure factors are `1.0` for a major supplier, `0.6` for partial exposure, and `0.3` for a company without direct HBM participation. The model therefore does not apply MU's HBM sensitivity unchanged to WDC or STX.
+
+### Layer 2: Final research signal
+
+The final report converts each dimension into a score near the `0–100` scale and applies the current implementation formula:
+
+```text
+S = 0.10 × short-term technicals
+  + 0.25 × memory cycle
+  + 0.12 × analyst consensus
+  + 0.08 × HBM supply and demand
+  + 0.08 × end-market demand
+  + 0.08 × insider activity
+  + 0.08 × shareholder changes
+  + 0.04 × technology nodes
+  + 0.05 × peer comparison
+  + financial-quality adjustment
+
+Final research signal = clamp(S, 10, 95)
+```
+
+The first nine terms are scoring coefficients. The financial-quality adjustment directly adds or subtracts points based on net margin, gross margin, ROE, debt-to-equity, price-to-book, and Beta. These terms are not a normalized 100% asset-pricing model. In the current implementation, HBM, end-market demand, and technology nodes contribute both to the first-layer memory-cycle score and to the second layer as company-specific sub-scores; the report displays both breakdowns.
+
+| Final research signal | Interpretation |
+| --- | --- |
+| `65–95` | Research indicators are broadly strong, but data freshness and model assumptions still require review |
+| `50–64` | Indicators are in the middle range; verify cycle inflections and missing data |
+| `35–49` | Several indicators are weak; continue checking fundamentals and data timing |
+| `10–34` | Risk or data-quality warnings dominate; verify completeness before drawing conclusions |
+
+The research signal is only an explainable summary of the evidence under the current data, sources, and assumptions. It is not a buy or sell recommendation, price target, probability of appreciation, or return guarantee.
+
+## Evaluation dimensions
+
+| Dimension | What it evaluates | Primary source or method |
+| --- | --- | --- |
+| Short-term technicals | RSI(14), MACD Histogram, volume ratio, and MA5 direction | `panda_data` daily prices and `utils/indicators.py` |
+| Financials and valuation | Revenue, net margin, gross margin, ROE, leverage, PE, PB, and Beta | `panda_data` financial and valuation endpoints |
+| Inventory cycle | Inventory-days direction, historical average, and inferred cycle phase | Quarterly inventory and COGS |
+| DRAM/NAND pricing | Contract-price direction and whether gross margin confirms it | Cited industry material and company financial data |
+| HBM/GPU | GPU specifications, Compute revenue, shipments and model mix, HBM per GPU, and the supply-demand gap | NVIDIA, SEC, and memory-supplier disclosures plus explicit models |
+| End-market demand | DRAM, NAND, HBM, and HDD end-market structure and company-weighted exposure | Industry material, company business mix, and model weighting |
+| CapEx and technology nodes | Expansion pace and DRAM/NAND process position | Company financials, company disclosures, and industry road maps |
+| Market participants | Analyst consensus, insider transactions, and shareholder-position changes | Relevant `panda_data` endpoints and public-filing-derived data |
+| Peer comparison | Current PE relative to the configured peer average | `panda_data` valuation data |
+| Data quality | Source, data period, current-run verification, missing fields, conflicts, and old-snapshot authorization | Industry-refresh gate and report freshness panels |
+| Historical-sample diagnostics | IC, bucketed returns, and win rates between a simplified score and subsequent 3/6/12-month returns | Historical market, financial, and industry inputs |
+
+The historical module uses a simplified score that is different from the live research signal and serves only as a correlation diagnostic. Small samples, backfilled data, timing mismatches, survivorship bias, overfitting, and omitted transaction costs can materially affect the result. It does not prove that a strategy works or predict future performance.
+
+## Skill highlights
+
+- **Pre-analysis refresh gate:** Every full analysis first verifies `gpu_specs`, `nvda_compute_revenue`, `gpu_shipments`, `gpu_mix`, and `hbm_supply`. If refresh is incomplete, the user must explicitly decide whether the run may use a complete prior snapshot.
+- **Facts and estimates remain separate:** Official facts, third-party industry material, and model estimates are displayed separately; models retain their inputs, formulas, assumptions, confidence, and limitations.
+- **Company-specific exposure:** Revenue mix, HBM exposure, and actual technology nodes adjust the impact for MU, SNDK, WDC, and STX instead of applying one memory-vendor template to HDD companies.
+- **Industry/company cross-check:** DRAM/NAND contract prices provide the industry signal, while the company's gross-margin trend confirms or adjusts the cycle assessment.
+- **Traceable sources and timing:** Reports display source links, `published_at`, `as_of`, `verified_at`, data freshness, and the current run mode.
+- **Secure local sign-in:** Windows uses a visible PowerShell window and macOS uses Terminal.app. Password characters are hidden, and credentials do not enter chat, HTML, files, command history, or logs.
+- **Interactive research report:** The HTML report combines market data, financials, valuation, memory cycles, HBM, end markets, technology nodes, peer comparison, score breakdowns, and historical-sample diagnostics.
+
 ## Quick start
 
 ### 1. Install dependencies
