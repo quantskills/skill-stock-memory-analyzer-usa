@@ -61,7 +61,7 @@ AUTHORITY_PRIORITY = {
     "company_news": 2,
     "regional_product_page": 1,
 }
-SUPPORTED_TICKERS = {"MU", "SNDK", "WDC", "STX"}
+SUPPORTED_TICKERS = {"MU", "SNDK", "WDC", "STX", "SKHY"}
 MANIFEST_LIFETIME = timedelta(hours=2)
 
 

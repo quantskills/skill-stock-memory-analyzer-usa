@@ -1,6 +1,6 @@
 # stock-memory-analyzer-usa
 
-A traceable research skill for US memory-industry companies such as MU, WDC, STX, and SNDK. It combines available `panda_data` market and financial data with cited DRAM/NAND/HBM, inventory, CapEx, technology-node, and peer inputs to create an HTML research report.
+A traceable research skill for US memory-industry companies such as MU, SKHY, WDC, STX, and SNDK. It combines available `panda_data` market and financial data with cited DRAM/NAND/HBM, inventory, CapEx, technology-node, and peer inputs to create an HTML research report.
 
 ## Status and boundaries
 
@@ -18,11 +18,14 @@ The current version supports the following US-listed storage companies:
 | Ticker | Company | Category |
 | --- | --- | --- |
 | `MU` | Micron Technology | DRAM / HBM / NAND |
+| `SKHY` | SK hynix (Nasdaq ADR) | DRAM / HBM / NAND |
 | `SNDK` | Sandisk | NAND / flash memory |
 | `WDC` | Western Digital | HDD storage infrastructure |
 | `STX` | Seagate Technology | HDD storage infrastructure |
 
 Choose one ticker for each full analysis. `WDC` and `STX` are HDD storage-infrastructure companies, so the report does not directly apply DRAM or HBM conclusions to them.
+
+`SKHY` began Nasdaq trading on 2026-07-10. Its report uses post-listing ADR history only and never splices Korea-listed `000660.KS` history. When the available history is too short, 52-week measures, long-window indicators, and historical backtests are labelled as unavailable.
 
 ## Core evaluation logic
 
@@ -99,7 +102,7 @@ The historical module uses a simplified score that is different from the live re
 
 - **Pre-analysis refresh gate:** Every full analysis first verifies `gpu_specs`, `nvda_compute_revenue`, `gpu_shipments`, `gpu_mix`, and `hbm_supply`. If refresh is incomplete, the user must explicitly decide whether the run may use a complete prior snapshot.
 - **Facts and estimates remain separate:** Official facts, third-party industry material, and model estimates are displayed separately; models retain their inputs, formulas, assumptions, confidence, and limitations.
-- **Company-specific exposure:** Revenue mix, HBM exposure, and actual technology nodes adjust the impact for MU, SNDK, WDC, and STX instead of applying one memory-vendor template to HDD companies.
+- **Company-specific exposure:** Revenue mix, HBM exposure, and actual technology nodes adjust the impact for MU, SKHY, SNDK, WDC, and STX instead of applying one memory-vendor template to HDD companies; SKHY calculations begin at its ADR listing date.
 - **Industry/company cross-check:** DRAM/NAND contract prices provide the industry signal, while the company's gross-margin trend confirms or adjusts the cycle assessment.
 - **Traceable sources and timing:** Reports display source links, `published_at`, `as_of`, `verified_at`, data freshness, and the current run mode.
 - **Secure local sign-in:** Windows uses a visible PowerShell window and macOS uses Terminal.app. Password characters are hidden, and credentials do not enter chat, HTML, files, command history, or logs.
@@ -159,7 +162,7 @@ bash scripts/run_with_prompt.sh --ticker MU --period 5y --industry-run-manifest 
 
 After sign-in succeeds in the temporary window, the script automatically analyzes the selected ticker and generates the report. No second command is required. The default history window is five years.
 
-Replace `MU` with `SNDK`, `WDC`, or `STX` for another supported ticker. Available history windows are `1y`, `2y`, `5y`, `10y`, and `max`:
+Replace `MU` with `SKHY`, `SNDK`, `WDC`, or `STX` for another supported ticker. Even if a longer window is selected, SKHY only displays post-listing data from 2026-07-10. Available history windows are `1y`, `2y`, `5y`, `10y`, and `max`:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/run_with_prompt.ps1 -Ticker SNDK -Period 2y -IndustryRunManifest output/runtime/industry_run.json

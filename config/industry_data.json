@@ -82,7 +82,7 @@
   },
   "memory_peers": {
     "_note": "存储板块对标公司及分类",
-    "_last_updated": "2026-07-09",
+    "_last_updated": "2026-07-30",
     "dram_focused": [
       {
         "ticker": "MU",
@@ -90,9 +90,11 @@
         "market": "US"
       },
       {
-        "ticker": "000660.KS",
+        "ticker": "SKHY",
         "name": "SK Hynix",
-        "market": "KR"
+        "market": "US",
+        "underlying_ticker": "000660.KS",
+        "underlying_market": "KRX"
       }
     ],
     "nand_focused": [
@@ -120,7 +122,7 @@
     }
   },
   "technology_nodes": {
-    "_last_updated": "2026-07-09",
+    "_last_updated": "2026-07-30",
     "dram": [
       {
         "node": "1a nm",
@@ -205,6 +207,12 @@
       "2024": 8,
       "2025": 10,
       "2026_e": 12
+    },
+    "SKHY": {
+      "2023": 63,
+      "2024": 116,
+      "2025": 190,
+      "note": "历史资本开支按 SK hynix Form F-1 披露的韩元金额换算并四舍五入；2026 年仅披露将显著增加，未填入量化预测"
     }
   },
   "gpu_hbm_specs": {
@@ -333,7 +341,7 @@
   },
   "downstream_demand": {
     "_note": "存储芯片下游需求终端拆分，数据来源 TrendForce/IDC/Gartner 公开摘要",
-    "_last_updated": "2026-07-09",
+    "_last_updated": "2026-07-30",
     "dram_demand_split": {
       "_note": "DRAM 终端需求占比 (%)",
       "server_data_center": {
@@ -464,6 +472,20 @@
       "dram_node": "不涉及",
       "nand_node": "BiCS 218L→300L+(与铠侠合作, 从WDC分拆)",
       "description": "纯 NAND Flash 厂商(2026年从WDC分拆), 专注消费级+企业级SSD/存储卡, 无DRAM/HBM, AI需求通过企业级SSD受益"
+    },
+    "SKHY": {
+      "name": "SK hynix Inc. (Nasdaq ADR)",
+      "revenue_mix": {
+        "dram": 0.7,
+        "nand": 0.2,
+        "hbm": 0.1
+      },
+      "revenue_mix_note": "用于分析权重，不代表公司审计披露的独立收入分部",
+      "hbm_tier": "主要供应商",
+      "dram_node": "1b nm→1c nm（HBM4/服务器 DRAM）",
+      "nand_node": "企业级 NAND / eSSD（以公司最新产品披露为准）",
+      "description": "SK hynix 是 DRAM、NAND 与 HBM 供应商；公司已完成 HBM4 开发并准备量产，2026 年展示 16 层 HBM4 与服务器 DRAM/eSSD 产品。",
+      "source": "SK hynix Newsroom（2025-09-12、2026-01-05、2026-06-02）"
     }
   }
 }

@@ -31,6 +31,15 @@ class SkillContractTests(unittest.TestCase):
         self.assertIn("不得要求用户在聊天中发送凭据", self.skill)
         self.assertNotIn("登录验证成功前不执行分析、不浏览网页补数", self.skill)
 
+    def test_skhy_is_documented_as_a_post_listing_only_adr(self):
+        for document in (self.skill, self.readme, self.readme_en):
+            self.assertIn("SKHY", document)
+            self.assertIn("2026-07-10", document)
+
+        self.assertIn("000660.KS", self.skill)
+        self.assertIn("仅使用上市后", self.readme)
+        self.assertIn("post-listing", self.readme_en)
+
     def test_readme_explains_evaluation_model(self):
         required_sections = (
             "## 核心评估逻辑",

@@ -15,6 +15,14 @@ from utils.industry_refresh import (
 
 
 class IndustryGateTests(unittest.TestCase):
+    def test_skhy_can_claim_a_fresh_industry_manifest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime = Path(tmp)
+            promote_snapshot(valid_candidate(), runtime, ticker="SKHY", now=NOW)
+            manifest = precheck_run_manifest(runtime / "industry_run.json", "SKHY", now=NOW)
+
+        self.assertEqual(manifest["ticker"], "SKHY")
+
     def test_manifest_is_ticker_bound_and_single_use(self):
         with tempfile.TemporaryDirectory() as tmp:
             runtime = Path(tmp)

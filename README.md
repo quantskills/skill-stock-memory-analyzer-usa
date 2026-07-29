@@ -1,6 +1,6 @@
 # stock-memory-analyzer-usa
 
-面向 MU、WDC、STX、SNDK 等美股存储产业链公司的可追溯研究分析 skill。它使用 `panda_data` 的可用市场与财务数据，并将 DRAM/NAND/HBM、库存、CapEx、技术节点和同业数据以来源、日期和假设为边界生成 HTML 研究报告。
+面向 MU、SKHY、WDC、STX、SNDK 等美股存储产业链公司的可追溯研究分析 skill。它使用 `panda_data` 的可用市场与财务数据，并将 DRAM/NAND/HBM、库存、CapEx、技术节点和同业数据以来源、日期和假设为边界生成 HTML 研究报告。
 
 ## 状态与边界
 
@@ -18,11 +18,14 @@
 | 代码 | 公司 | 分类 |
 | --- | --- | --- |
 | `MU` | Micron Technology | DRAM / HBM / NAND |
+| `SKHY` | SK hynix（Nasdaq ADR） | DRAM / HBM / NAND |
 | `SNDK` | Sandisk | NAND / 闪存 |
 | `WDC` | Western Digital | HDD 存储基础设施 |
 | `STX` | Seagate Technology | HDD 存储基础设施 |
 
 每次正式分析请选择一只标的。`WDC` 与 `STX` 属于 HDD 存储基础设施公司，报告不会把 DRAM 或 HBM 结论直接套用到它们。
+
+`SKHY` 于 2026-07-10 在 Nasdaq 上市。报告仅使用上市后（该日期含）的 ADR 历史，不拼接韩国原股 `000660.KS`；若交易日不足，52 周位置、长周期指标与历史回测会明确标为数据不足。
 
 ## 核心评估逻辑
 
@@ -99,7 +102,7 @@ S = 0.10 × 短期技术
 
 - **分析前刷新门禁**：每次正式分析先核验 `gpu_specs`、`nvda_compute_revenue`、`gpu_shipments`、`gpu_mix`、`hbm_supply`；刷新失败时必须由用户明确决定是否使用完整旧快照。
 - **事实与估算分层**：官方事实、第三方行业资料和模型估算分别展示；模型保留输入、公式、假设、置信度和局限。
-- **公司差异化**：按收入结构、HBM 暴露和实际技术节点调整 MU、SNDK、WDC、STX 的影响，避免用单一内存厂商模板覆盖 HDD 公司。
+- **公司差异化**：按收入结构、HBM 暴露和实际技术节点调整 MU、SKHY、SNDK、WDC、STX 的影响，避免用单一内存厂商模板覆盖 HDD 公司；SKHY 的美股历史严格从上市日起计算。
 - **行业与公司交叉验证**：DRAM/NAND 合约价作为行业信号，公司毛利率趋势用于确认或修正周期判断。
 - **来源与时点可追溯**：报告展示来源链接、`published_at`、`as_of`、`verified_at`、数据新鲜度和本轮使用模式。
 - **本机安全登录**：Windows 使用可见 PowerShell，macOS 使用 Terminal.app；密码字符隐藏，凭据不进入聊天、HTML、文件、命令历史或日志。
@@ -163,7 +166,7 @@ bash scripts/run_with_prompt.sh --ticker MU --period 5y --industry-run-manifest 
 
 在弹出的窗口完成登录后，脚本会自动分析所选股票并生成报告，无需再次输入命令。默认使用 5 年历史窗口。
 
-如需其他已支持标的，将 `MU` 替换为 `SNDK`、`WDC` 或 `STX`。可选的历史窗口包括 `1y`、`2y`、`5y`、`10y` 和 `max`：
+如需其他已支持标的，将 `MU` 替换为 `SKHY`、`SNDK`、`WDC` 或 `STX`。SKHY 即使选择较长窗口，也只显示 2026-07-10 之后的数据；可选的历史窗口包括 `1y`、`2y`、`5y`、`10y` 和 `max`：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/run_with_prompt.ps1 -Ticker SNDK -Period 2y -IndustryRunManifest output/runtime/industry_run.json

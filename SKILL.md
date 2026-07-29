@@ -1,6 +1,6 @@
 ---
 name: stock-memory-analyzer
-description: 对 MU、SNDK、WDC、STX 等美股存储公司开展基于 panda_data 的可追溯研究分析，结合行情、财务、估值、DRAM/NAND/HBM 供需、库存、CapEx、技术节点和同业对标，生成交互式 HTML 研究报告。当用户提到存储芯片、内存、NAND、DRAM、HBM、存储周期，或要求研究这些美股公司时使用。首次响应列出可分析标的并要求用户明确选择一只；确认后先从国内外官方来源刷新 GPU/HBM 五个必需模块，通过校验或取得本轮旧数据授权后，才在 Windows 打开可见的临时 PowerShell，或在 macOS 打开可见的 Terminal.app，由程序在本机提示输入账号并隐藏密码字符。不默认选择标的，不把模型估算写成官方事实。本技能仅用于研究与教育，不提供买卖建议、收益承诺或个性化投资建议。
+description: 对 MU、SKHY、SNDK、WDC、STX 等美股存储公司开展基于 panda_data 的可追溯研究分析，结合行情、财务、估值、DRAM/NAND/HBM 供需、库存、CapEx、技术节点和同业对标，生成交互式 HTML 研究报告。当用户提到存储芯片、内存、NAND、DRAM、HBM、存储周期，或要求研究这些美股公司时使用。首次响应列出可分析标的并要求用户明确选择一只；确认后先从国内外官方来源刷新 GPU/HBM 五个必需模块，通过校验或取得本轮旧数据授权后，才在 Windows 打开可见的临时 PowerShell，或在 macOS 打开可见的 Terminal.app，由程序在本机提示输入账号并隐藏密码字符。不默认选择标的，不把模型估算写成官方事实。本技能仅用于研究与教育，不提供买卖建议、收益承诺或个性化投资建议。
 license: GPL-3.0-only
 metadata:
   organization: QuantSkills
@@ -28,6 +28,7 @@ metadata:
       "required": true,
       "options": [
         { "value": "MU", "label": "MU｜Micron Technology" },
+        { "value": "SKHY", "label": "SKHY｜SK hynix（Nasdaq ADR）" },
         { "value": "SNDK", "label": "SNDK｜Sandisk" },
         { "value": "WDC", "label": "WDC｜Western Digital" },
         { "value": "STX", "label": "STX｜Seagate Technology" }
@@ -81,9 +82,12 @@ metadata:
 | 代码 | 公司 | 分类 | 分析侧重点 |
 | --- | --- | --- | --- |
 | `MU` | Micron Technology | DRAM / HBM / NAND | 内存价格周期、HBM、数据中心与资本开支 |
+| `SKHY` | SK hynix（Nasdaq ADR） | DRAM / HBM / NAND | HBM、DRAM、NAND、数据中心与资本开支；仅使用 ADR 上市后历史 |
 | `SNDK` | Sandisk | NAND / 闪存 | NAND、企业级 SSD、数据中心与价格周期 |
 | `WDC` | Western Digital | HDD 存储基础设施 | 大容量 HDD、云与数据中心存储；不将 HBM 结论直接套用 |
 | `STX` | Seagate Technology | HDD 存储基础设施 | 大容量 HDD、云与数据中心存储；不将 HBM 结论直接套用 |
+
+`SKHY` 于 2026-07-10 在 Nasdaq 上市。其价格、技术指标、52 周指标与回测只能使用该日期（含）之后的 ADR 记录；韩国原股代码 `000660.KS` 仅用于说明 ADR 对应关系，绝不拼接、替代或补足 `SKHY` 的历史。窗口不足时应明确展示“上市后数据不足”。
 
 若需要研究不在此表中的美股，先向用户说明当前 Skill 未配置该标的，不得假定 `panda_data` 支持它；只有维护者扩展配置和数据验证后，才可纳入。
 
@@ -94,7 +98,7 @@ metadata:
 当用户第一次提出“分析美股存储芯片”“分析存储股”或没有明确给出单一代码的请求时，按以下顺序回应：
 
 1. 明确说明正式分析依赖 `panda_data`，公开网页只用于刷新行业输入，不代替行情、财务和估值数据。
-2. 展示上方四只可分析股票的代码、公司和分类，要求用户选择一只。即便用户说“分析整个行业”或未指定代码，也不能默认选择 `MU`。
+2. 展示上方五只可分析股票的代码、公司和分类，要求用户选择一只。即便用户说“分析整个行业”或未指定代码，也不能默认选择 `MU`。
 3. 用户确认代码后，先告知“正在从国内外官方来源刷新 GPU/HBM 行业数据”，然后执行下文的五模块刷新；此阶段不读取或请求 `panda_data` 凭据。
 4. 刷新成功时创建一次性行业运行清单；刷新失败时按“刷新失败与旧数据决策”处理，未获得明确授权前不得打开登录窗口。
 5. 行业门禁通过后，在对话中告知用户：“由程序在本机提示输入账号并隐藏密码字符。Windows 将打开 PowerShell，macOS 将打开 Terminal.app。请在弹出的窗口完成输入，完成后窗口会自动关闭，我会继续检查报告结果。”
@@ -108,6 +112,7 @@ metadata:
 
 当前可分析的美股：
 - MU — Micron Technology：DRAM / HBM / NAND
+- SKHY — SK hynix（Nasdaq ADR）：DRAM / HBM / NAND；仅使用 2026-07-10 起的上市后历史
 - SNDK — Sandisk：NAND / 闪存
 - WDC — Western Digital：HDD 存储基础设施
 - STX — Seagate Technology：HDD 存储基础设施
