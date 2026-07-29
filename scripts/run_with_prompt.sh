@@ -47,11 +47,12 @@ done
 
 case "$TICKER" in
     MU|mu) TICKER="MU" ;;
+    SKHY|skhy) TICKER="SKHY" ;;
     SNDK|sndk) TICKER="SNDK" ;;
     WDC|wdc) TICKER="WDC" ;;
     STX|stx) TICKER="STX" ;;
     *)
-        printf 'Ticker must be one of: MU, SNDK, WDC, STX.\n' >&2
+        printf 'Ticker must be one of: MU, SKHY, SNDK, WDC, STX.\n' >&2
         exit 2
         ;;
 esac

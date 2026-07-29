@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet("MU", "SNDK", "WDC", "STX")]
+    [ValidateSet("MU", "SKHY", "SNDK", "WDC", "STX")]
     [string]$Ticker,
 
     [ValidateSet("1y", "2y", "5y", "10y", "max")]

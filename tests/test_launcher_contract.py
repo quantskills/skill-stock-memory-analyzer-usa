@@ -6,6 +6,14 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 class LauncherContractTests(unittest.TestCase):
+    def test_launchers_accept_skhy(self):
+        windows = (ROOT / "scripts" / "run_with_prompt.ps1").read_text(encoding="utf-8")
+        macos = (ROOT / "scripts" / "run_with_prompt.sh").read_text(encoding="utf-8")
+
+        self.assertIn('"SKHY"', windows)
+        self.assertIn("SKHY|skhy", macos)
+        self.assertIn("SKHY", windows[windows.index("ValidateSet"):windows.index("[string]$Ticker")])
+
     def test_windows_prechecks_industry_before_credentials(self):
         content = (ROOT / "scripts" / "run_with_prompt.ps1").read_text(encoding="utf-8")
         self.assertIn("IndustryRunManifest", content)
