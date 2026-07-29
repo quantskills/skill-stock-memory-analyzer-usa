@@ -33,6 +33,7 @@ from utils.industry_refresh import (
     apply_runtime_snapshot,
     claim_run_manifest,
 )
+from utils.ticker_policy import build_history_context, filter_price_history
 
 
 def load_runtime_dependencies() -> None:
@@ -90,6 +91,14 @@ def _fmt(val, suffix="", default="--"):
     return f"{v}{suffix}"
 
 
+def _prepare_price_history(ticker, price_df):
+    """Apply ticker-specific listing boundaries before any price analysis."""
+    filtered = filter_price_history(ticker, price_df)
+    if filtered.empty:
+        raise RuntimeError(f"{ticker.upper()} 上市后行情不可用，无法生成正式报告")
+    return filtered, build_history_context(ticker, filtered)
+
+
 def analyze_single(ticker: str, period: str, output_path: str = None,
                    username: str = None, password: str = None,
                    industry_context: dict = None) -> str:
@@ -129,6 +138,7 @@ def analyze_single(ticker: str, period: str, output_path: str = None,
     # 1. 行情数据
     print("[1/6] 获取行情数据...")
     price_df = fetch_stock_data(ticker, period)
+    price_df, history_context = _prepare_price_history(ticker, price_df)
 
     # 2. 基本面数据
     print("[2/6] 获取基本面数据...")
@@ -192,20 +202,25 @@ def analyze_single(ticker: str, period: str, output_path: str = None,
     info["currentPrice"] = current_price
     info["regularMarketPrice"] = current_price
 
-    # 52周高低
-    year_ago = price_df.index[-1] - pd.Timedelta(days=365)
-    year_data = price_df[price_df.index >= year_ago]
-    if not year_data.empty:
-        info["fiftyTwoWeekHigh"] = float(year_data["High"].max())
-        info["fiftyTwoWeekLow"] = float(year_data["Low"].min())
+    # 52周高低仅在完整窗口可用时计算。
+    if history_context["has_52_week_history"]:
+        year_ago = price_df.index[-1] - pd.Timedelta(days=365)
+        year_data = price_df[price_df.index >= year_ago]
+        if not year_data.empty:
+            info["fiftyTwoWeekHigh"] = float(year_data["High"].max())
+            info["fiftyTwoWeekLow"] = float(year_data["Low"].min())
+    else:
+        info["fiftyTwoWeekHigh"] = None
+        info["fiftyTwoWeekLow"] = None
 
     # ---- 从 pv_metric 补充估值数据 ----
     pv = fundamentals.get("pv_metric", {})
     if pv:
         info["marketCap"] = pv.get("market_cap")
         info["beta"] = pv.get("beta_5y")
-        info["fiftyTwoWeekHigh"] = pv.get("high_52w") or info.get("fiftyTwoWeekHigh")
-        info["fiftyTwoWeekLow"] = pv.get("low_52w") or info.get("fiftyTwoWeekLow")
+        if history_context["has_52_week_history"]:
+            info["fiftyTwoWeekHigh"] = pv.get("high_52w") or info.get("fiftyTwoWeekHigh")
+            info["fiftyTwoWeekLow"] = pv.get("low_52w") or info.get("fiftyTwoWeekLow")
         if pv.get("close_price"):
             info["currentPrice"] = pv["close_price"]
             info["regularMarketPrice"] = pv["close_price"]
@@ -385,6 +400,7 @@ def analyze_single(ticker: str, period: str, output_path: str = None,
         industry_data=industry_data,
         industry_snapshot=industry_snapshot,
         industry_run_mode=industry_run_mode,
+        history_context=history_context,
     )
 
     # 保存

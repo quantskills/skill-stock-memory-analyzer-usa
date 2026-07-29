@@ -63,7 +63,8 @@ def build_report(ticker: str, company_name: str, report_date: str,
                  backtest_result: dict = None,
                  industry_data: dict = None,
                  industry_snapshot: dict = None,
-                 industry_run_mode: str = None) -> str:
+                 industry_run_mode: str = None,
+                 history_context: dict = None) -> str:
     """
     生成完整 HTML 报告
 
@@ -85,12 +86,13 @@ def build_report(ticker: str, company_name: str, report_date: str,
     if industry_snapshot:
         sections.append(build_industry_snapshot_html(industry_snapshot, industry_run_mode or "fresh"))
     sections.append(_industry_provenance_bar(industry_data))
+    sections.append(_history_boundary_card(ticker, history_context))
 
     # 3. KPI 仪表盘
     sections.append('<div id="sec-kpi">' + _kpi_dashboard(info, technicals, price_df) + '</div>')
 
     # 4. 52周位置指示
-    sections.append('<div id="sec-position">' + _position_bar(info) + '</div>')
+    sections.append('<div id="sec-position">' + _position_bar(info, history_context) + '</div>')
 
     # 5. 通用分析 Tab 面板
     sections.append('<div id="sec-general">' + _general_analysis_tabs(price_df, fundamentals, technicals, info, institutional) + '</div>')
@@ -109,8 +111,13 @@ def build_report(ticker: str, company_name: str, report_date: str,
                                        hbm_demand, end_market, tech_position, ticker) + '</div>')
 
     # 8. 回测结果
-    if backtest_result and "error" not in backtest_result:
-        sections.append(_fig_backtest_results(backtest_result))
+    if backtest_result:
+        if backtest_result.get("available") is False:
+            sections.append(_backtest_unavailable_card(backtest_result))
+        elif "error" not in backtest_result:
+            sections.append(_fig_backtest_results(backtest_result))
+        else:
+            sections.append(_backtest_unavailable_card(backtest_result))
 
     # 9. HTML 尾部
     sections.append(_html_footer())
@@ -450,8 +457,42 @@ def _kpi_dashboard(info: dict, technicals: dict, price_df: pd.DataFrame) -> str:
     return f'<div class="kpi-grid">{"".join(rows)}</div>'
 
 
-def _position_bar(info: dict) -> str:
+def _history_boundary_card(ticker: str, history_context: dict = None) -> str:
+    """Render the listing boundary for instruments with restricted history."""
+    if not history_context or not history_context.get("listing_date"):
+        return ""
+
+    listing_date = escape(str(history_context["listing_date"]))
+    trading_days = history_context.get("trading_days", 0)
+    return f"""
+    <div style="background:#182533; border:1px solid #3d6b8f; border-radius:10px; padding:12px 16px; margin:0 0 16px; color:#c7d9e8; font-size:0.85rem;">
+        <b style="color:#90caf9;">📅 美股历史边界</b><br>
+        {escape(ticker.upper())} 自 {listing_date} 在 Nasdaq 上市；本报告仅使用上市后 {trading_days} 个交易日的数据，不拼接韩国原股历史。
+    </div>"""
+
+
+def _backtest_unavailable_card(backtest_result: dict) -> str:
+    """Render a safe explanation instead of an empty historical backtest."""
+    reason = escape(str(backtest_result.get("reason") or backtest_result.get("error") or "历史数据不足，暂不提供回测"))
+    return f"""
+    <div class="plot-container" style="margin-top:24px;">
+        <div class="section-title" id="sec-backtest">📈 历史样本诊断</div>
+        <div style="background:#1a2332; border:1px solid #2a3a4a; border-radius:8px; padding:14px; color:#8899aa;">{reason}</div>
+    </div>"""
+
+
+def _position_bar(info: dict, history_context: dict = None) -> str:
     """52周位置指示条"""
+    if history_context and not history_context.get("has_52_week_history", True):
+        reason = history_context.get("unavailable_reasons", {}).get(
+            "52_week", "上市后历史不足，52周价格位置暂不适用"
+        )
+        return f"""
+        <div class="position-bar-container">
+            <h3>📏 52周价格位置</h3>
+            <div style="color:#8899aa;">{escape(reason)}</div>
+        </div>"""
+
     low = info.get("fiftyTwoWeekLow")
     high = info.get("fiftyTwoWeekHigh")
     price = info.get("currentPrice") or info.get("regularMarketPrice")

@@ -20,6 +20,8 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
+from utils.ticker_policy import build_history_context
+
 
 def _calc_quarterly_score(price_df: pd.DataFrame, fin_quarters: dict,
                           quarter_key: str, report_date: str,
@@ -276,6 +278,16 @@ def run_backtest(ticker: str, price_df: pd.DataFrame,
     Returns:
         {points: [...], correlation, win_rate, tier_returns}
     """
+    history_context = build_history_context(ticker, price_df)
+    if history_context["listing_date"] and history_context["trading_days"] < 252:
+        return {
+            "available": False,
+            "ticker": ticker.upper(),
+            "listing_date": history_context["listing_date"],
+            "trading_days": history_context["trading_days"],
+            "reason": f"{ticker.upper()} 上市后历史不足，暂不提供历史回测",
+        }
+
     # 按季度排序
     sorted_qs = sorted(fin_quarters.keys())
     if len(sorted_qs) < 5:
