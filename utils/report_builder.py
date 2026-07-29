@@ -95,7 +95,9 @@ def build_report(ticker: str, company_name: str, report_date: str,
     sections.append('<div id="sec-position">' + _position_bar(info, history_context) + '</div>')
 
     # 5. 通用分析 Tab 面板
-    sections.append('<div id="sec-general">' + _general_analysis_tabs(price_df, fundamentals, technicals, info, institutional) + '</div>')
+    sections.append('<div id="sec-general">' + _general_analysis_tabs(
+        price_df, fundamentals, technicals, info, institutional, history_context
+    ) + '</div>')
 
     # 6. 存储行业专属 Tab 面板
     sections.append('<div id="sec-memory">' + _memory_specific_tabs(price_df, fundamentals, inv_analysis, price_cycle,
@@ -108,7 +110,8 @@ def build_report(ticker: str, company_name: str, report_date: str,
     sections.append('<div id="sec-assessment">' + _assessment_footer(memory_assessment, inv_analysis, price_cycle,
                                        technicals, info, fundamentals, recommendation,
                                        insider_trades, shareholder_reports, peers, capex_analysis,
-                                       hbm_demand, end_market, tech_position, ticker) + '</div>')
+                                       hbm_demand, end_market, tech_position, ticker,
+                                       history_context) + '</div>')
 
     # 8. 回测结果
     if backtest_result:
@@ -519,9 +522,12 @@ def _position_bar(info: dict, history_context: dict = None) -> str:
 
 def _general_analysis_tabs(price_df: pd.DataFrame, fundamentals: dict,
                            technicals: dict, info: dict,
-                           institutional: dict = None) -> str:
+                           institutional: dict = None,
+                           history_context: dict = None) -> str:
     """通用分析 Tab 面板"""
-    figs = _build_general_figures(price_df, fundamentals, technicals, info, institutional)
+    figs = _build_general_figures(
+        price_df, fundamentals, technicals, info, institutional, history_context
+    )
 
     tabs_html = ""
     for i, (title, fig_html) in enumerate(figs):
@@ -540,15 +546,16 @@ def _general_analysis_tabs(price_df: pd.DataFrame, fundamentals: dict,
     </div>"""
 
 
-def _build_general_figures(price_df, fundamentals, technicals, info, institutional=None):
+def _build_general_figures(price_df, fundamentals, technicals, info,
+                           institutional=None, history_context=None):
     """构建通用分析的所有图表"""
     figs = []
 
     # Tab1: 技术走势 (K线 + MA)
-    figs.append(("📊 技术走势", _fig_price_with_ma(price_df, technicals)))
+    figs.append(("📊 技术走势", _fig_price_with_ma(price_df, technicals, history_context)))
 
     # Tab2: 技术指标 (RSI + MACD)
-    figs.append(("📉 技术指标", _fig_rsi_macd(price_df, technicals)))
+    figs.append(("📉 技术指标", _fig_rsi_macd(price_df, technicals, history_context)))
 
     # Tab3: 财务趋势
     figs.append(("💰 财务趋势", _fig_financial_trend(fundamentals)))
@@ -562,7 +569,8 @@ def _build_general_figures(price_df, fundamentals, technicals, info, institution
     return figs
 
 
-def _fig_price_with_ma(df: pd.DataFrame, technicals: dict) -> str:
+def _fig_price_with_ma(df: pd.DataFrame, technicals: dict,
+                       history_context: dict = None) -> str:
     """K线 + 均线图"""
     fig = make_subplots(
         rows=2, cols=1, shared_xaxes=True,
@@ -580,7 +588,9 @@ def _fig_price_with_ma(df: pd.DataFrame, technicals: dict) -> str:
     # 均线
     ma_colors = {"ma_5": "#ffeb3b", "ma_20": "#ff9800", "ma_50": "#2196f3", "ma_200": "#e91e63"}
     for ma_key, color in ma_colors.items():
-        if ma_key in technicals:
+        if ma_key in technicals and (
+            not history_context or history_context.get(f"has_{ma_key}", True)
+        ):
             fig.add_trace(go.Scatter(
                 x=df.index, y=technicals[ma_key],
                 mode="lines", line=dict(width=1.5, color=color),
@@ -588,7 +598,9 @@ def _fig_price_with_ma(df: pd.DataFrame, technicals: dict) -> str:
             ), row=1, col=1)
 
     # 布林带
-    if "bb_upper" in technicals:
+    if "bb_upper" in technicals and (
+        not history_context or history_context.get("has_bollinger_20", True)
+    ):
         fig.add_trace(go.Scatter(
             x=df.index, y=technicals["bb_upper"],
             mode="lines", line=dict(width=0.5, color="#555", dash="dash"),
@@ -634,10 +646,25 @@ def _fig_price_with_ma(df: pd.DataFrame, technicals: dict) -> str:
     fig.update_yaxes(title_text="价格 ($)", row=1, col=1)
     fig.update_yaxes(title_text="成交量", row=2, col=1)
 
+    if history_context:
+        unavailable = [
+            label for key, label in (("ma_20", "MA20"), ("ma_50", "MA50"),
+                                      ("ma_200", "MA200"), ("bollinger_20", "布林带"))
+            if not history_context.get(f"has_{key}", True)
+        ]
+        if unavailable:
+            fig.add_annotation(
+                text=(f"上市后仅 {history_context.get('trading_days', 0)} 个交易日；"
+                      f"{'、'.join(unavailable)} 暂不展示"),
+                xref="paper", yref="paper", x=0.5, y=1.12, showarrow=False,
+                font=dict(color="#ff9800", size=12),
+            )
+
     return fig.to_html(full_html=False, include_plotlyjs=False, config={'displaylogo': False, 'modeBarButtonsToRemove': ['zoom2d','pan2d','select2d','lasso2d','zoomIn2d','zoomOut2d','resetScale2d','hoverClosestCartesian','hoverCompareCartesian','toggleSpikelines'], 'displayModeBar': True})
 
 
-def _fig_rsi_macd(df: pd.DataFrame, technicals: dict) -> str:
+def _fig_rsi_macd(df: pd.DataFrame, technicals: dict,
+                  history_context: dict = None) -> str:
     """RSI + MACD 副图"""
     fig = make_subplots(
         rows=2, cols=1, shared_xaxes=True,
@@ -646,7 +673,9 @@ def _fig_rsi_macd(df: pd.DataFrame, technicals: dict) -> str:
     )
 
     # RSI
-    if "rsi_14" in technicals:
+    if "rsi_14" in technicals and (
+        not history_context or history_context.get("has_rsi_14", True)
+    ):
         rsi = technicals["rsi_14"]
         fig.add_trace(go.Scatter(
             x=df.index, y=rsi, mode="lines",
@@ -658,7 +687,9 @@ def _fig_rsi_macd(df: pd.DataFrame, technicals: dict) -> str:
         fig.update_yaxes(range=[0, 100], row=1, col=1)
 
     # MACD
-    if "macd_line" in technicals:
+    if "macd_line" in technicals and (
+        not history_context or history_context.get("has_macd", True)
+    ):
         fig.add_trace(go.Scatter(
             x=df.index, y=technicals["macd_line"], mode="lines",
             line=dict(color="#2196f3", width=1.5), name="MACD"
@@ -683,6 +714,18 @@ def _fig_rsi_macd(df: pd.DataFrame, technicals: dict) -> str:
         hovermode="x unified",
         autosize=True,
     )
+    if history_context:
+        unavailable = [
+            label for key, label in (("rsi_14", "RSI(14)"), ("macd", "MACD"))
+            if not history_context.get(f"has_{key}", True)
+        ]
+        if unavailable:
+            fig.add_annotation(
+                text=(f"上市后仅 {history_context.get('trading_days', 0)} 个交易日；"
+                      f"{'、'.join(unavailable)} 暂不展示"),
+                xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False,
+                font=dict(color="#ff9800", size=13),
+            )
     # Full-width display
     return fig.to_html(full_html=False, include_plotlyjs=False, config={'displaylogo': False, 'modeBarButtonsToRemove': ['zoom2d','pan2d','select2d','lasso2d','zoomIn2d','zoomOut2d','resetScale2d','hoverClosestCartesian','hoverCompareCartesian','toggleSpikelines'], 'displayModeBar': True})
 
@@ -1282,12 +1325,17 @@ def _assessment_footer(memory_assessment: dict, inv_analysis: dict, price_cycle:
                        hbm_demand: dict = None,
                        end_market: dict = None,
                        tech_position: dict = None,
-                       ticker: str = "MU") -> str:
+                       ticker: str = "MU",
+                       history_context: dict = None) -> str:
     """综合评估 - 10维度(公司差异化): 短期技术(10%)+存储周期(25%)+分析师(12%)+HBM(8%)+下游(8%)+内部人(8%)+股东(8%)+技术(4%)+对标(5%)+财务(±25)"""
     score = memory_assessment.get("composite_score", 50)
     rating = memory_assessment.get("rating", "N/A")
 
     # === 短期技术面分析 ===
+    short_technical_available = not history_context or (
+        history_context.get("has_rsi_14", True)
+        and history_context.get("has_macd", True)
+    )
     rsi = 50.0
     if "rsi_14" in technicals:
         rsi = float(technicals["rsi_14"].iloc[-1]) if hasattr(technicals["rsi_14"], 'iloc') else 50.0
@@ -1298,28 +1346,42 @@ def _assessment_footer(memory_assessment: dict, inv_analysis: dict, price_cycle:
         macd_hist = float(hist_series.iloc[-1]) if hasattr(hist_series, 'iloc') else 0
 
     vol_ratio = technicals.get("volume_ratio", 1.0)
+    rsi_display = f"{rsi:.1f}" if short_technical_available else "数据不足"
+    macd_display = f"{macd_hist:+.4f}" if short_technical_available else "数据不足"
+    macd_display_color = "#4caf50" if macd_hist > 0 else "#f44336"
+    if not short_technical_available:
+        macd_display_color = "#ff9800"
 
     # 短期信号
     st_signals = []
-    if rsi > 70:
-        st_signals.append(("超买", "bearish", f"RSI={rsi:.0f}"))
-    elif rsi < 30:
-        st_signals.append(("超卖", "bullish", f"RSI={rsi:.0f}"))
-    else:
-        st_signals.append(("中性", "neutral", f"RSI={rsi:.0f}"))
+    if short_technical_available:
+        if rsi > 70:
+            st_signals.append(("超买", "bearish", f"RSI={rsi:.0f}"))
+        elif rsi < 30:
+            st_signals.append(("超卖", "bullish", f"RSI={rsi:.0f}"))
+        else:
+            st_signals.append(("中性", "neutral", f"RSI={rsi:.0f}"))
 
-    if macd_hist > 0:
-        st_signals.append(("MACD金叉", "bullish", f"+{macd_hist:.3f}"))
-    else:
-        st_signals.append(("MACD死叉", "bearish", f"{macd_hist:.3f}"))
+        if macd_hist > 0:
+            st_signals.append(("MACD金叉", "bullish", f"+{macd_hist:.3f}"))
+        else:
+            st_signals.append(("MACD死叉", "bearish", f"{macd_hist:.3f}"))
 
-    if vol_ratio and vol_ratio > 1.5:
-        st_signals.append(("放量", "bearish" if rsi < 50 else "bullish", f"{vol_ratio:.1f}x"))
+        if vol_ratio and vol_ratio > 1.5:
+            st_signals.append(("放量", "bearish" if rsi < 50 else "bullish", f"{vol_ratio:.1f}x"))
+    else:
+        st_signals.append((
+            "数据不足", "neutral",
+            f"上市后仅 {history_context.get('trading_days', 0)} 个交易日"
+        ))
 
     # 短期判定
     bull_count = sum(1 for _, s, _ in st_signals if s == "bullish")
     bear_count = sum(1 for _, s, _ in st_signals if s == "bearish")
-    if bull_count > bear_count:
+    if not short_technical_available:
+        short_term = "暂不判断"
+        st_color = "#ff9800"
+    elif bull_count > bear_count:
         short_term = "偏多"
         st_color = "#4caf50"
     elif bear_count > bull_count:
@@ -1739,8 +1801,8 @@ def _assessment_footer(memory_assessment: dict, inv_analysis: dict, price_cycle:
                 <div style="color:#e1e8ed; font-weight:700; margin:14px 0 8px;">一、短期技术面 (15%) — 信号规则</div>
                 <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
                     <tr style="color:#8899aa;"><th style="text-align:left; padding:6px 10px;">指标</th><th style="text-align:left; padding:6px 10px;">权重</th><th style="text-align:left; padding:6px 10px;">信号规则</th><th style="text-align:left; padding:6px 10px;">当前值</th></tr>
-                    <tr><td style="padding:6px 10px;">RSI(14)</td><td style="padding:6px 10px;">40%</td><td style="padding:6px 10px;">&gt;70超买偏空 / &lt;30超卖偏多</td><td style="padding:6px 10px; color:#ff9800;">{rsi:.1f}</td></tr>
-                    <tr style="background:rgba(255,255,255,0.02);"><td style="padding:6px 10px;">MACD Hist</td><td style="padding:6px 10px;">40%</td><td style="padding:6px 10px;">&gt;0金叉偏多 / &lt;0死叉偏空</td><td style="padding:6px 10px; color:{'#4caf50' if macd_hist > 0 else '#f44336'};">{macd_hist:+.4f}</td></tr>
+                    <tr><td style="padding:6px 10px;">RSI(14)</td><td style="padding:6px 10px;">40%</td><td style="padding:6px 10px;">&gt;70超买偏空 / &lt;30超卖偏多</td><td style="padding:6px 10px; color:#ff9800;">{rsi_display}</td></tr>
+                    <tr style="background:rgba(255,255,255,0.02);"><td style="padding:6px 10px;">MACD Hist</td><td style="padding:6px 10px;">40%</td><td style="padding:6px 10px;">&gt;0金叉偏多 / &lt;0死叉偏空</td><td style="padding:6px 10px; color:{macd_display_color};">{macd_display}</td></tr>
                     <tr><td style="padding:6px 10px;">量比</td><td style="padding:6px 10px;">20%</td><td style="padding:6px 10px;">&gt;1.5x放量, 结合RSI判断方向</td><td style="padding:6px 10px; color:#8899aa;">{vol_ratio:.1f}x</td></tr>
                 </table>
 

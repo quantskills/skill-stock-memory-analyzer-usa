@@ -42,6 +42,20 @@ class TickerPolicyTests(unittest.TestCase):
             "上市后交易日不足", context["unavailable_reasons"]["52_week"]
         )
 
+    def test_skhy_context_marks_long_technical_windows_unavailable(self):
+        rows = pd.DataFrame(
+            {"Close": range(13)},
+            index=pd.bdate_range("2026-07-10", periods=13),
+        )
+
+        context = build_history_context("SKHY", rows)
+
+        self.assertIs(context.get("has_ma_20"), False)
+        self.assertIs(context.get("has_ma_50"), False)
+        self.assertIs(context.get("has_ma_200"), False)
+        self.assertIs(context.get("has_rsi_14"), False)
+        self.assertIs(context.get("has_macd"), False)
+
 
 if __name__ == "__main__":
     unittest.main()
