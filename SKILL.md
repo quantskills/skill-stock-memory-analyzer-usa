@@ -1,5 +1,5 @@
 ---
-name: stock-memory-analyzer
+name: stock-memory-analyzer-usa
 description: 对 MU、SKHY、SNDK、WDC、STX 等美股存储公司开展基于 panda_data 的可追溯研究分析，结合行情、财务、估值、DRAM/NAND/HBM 供需、库存、CapEx、技术节点和同业对标，生成交互式 HTML 研究报告。当用户提到存储芯片、内存、NAND、DRAM、HBM、存储周期，或要求研究这些美股公司时使用。首次响应列出可分析标的并要求用户明确选择一只；确认后先从国内外官方来源刷新 GPU/HBM 五个必需模块，通过校验或取得本轮旧数据授权后，才在 Windows 打开可见的临时 PowerShell，或在 macOS 打开可见的 Terminal.app，由程序在本机提示输入账号并隐藏密码字符。不默认选择标的，不把模型估算写成官方事实。本技能仅用于研究与教育，不提供买卖建议、收益承诺或个性化投资建议。
 license: GPL-3.0-only
 metadata:
