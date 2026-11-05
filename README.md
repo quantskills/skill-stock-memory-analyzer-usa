@@ -215,3 +215,6 @@ macOS 可能首次请求允许当前应用自动化控制 Terminal.app；这是�
 ## 运行时入口
 
 `SKILL.md` 是 Codex 和 Claude Code 的主入口；Cursor 使用 [agents/cursor-rule.mdc](agents/cursor-rule.mdc)，Hermes 与 OpenClaw 使用 [agents/portable-loader.md](agents/portable-loader.md)。这些适配文件只负责加载同一份主规范，避免多处维护产生偏差。
+
+
+Pandadata 兼容维护：[abgyjaguo](https://github.com/abgyjaguo)，保留原项目作者署名。

@@ -528,7 +528,10 @@ def fetch_insider_trades(ticker: str) -> dict:
     import panda_data
 
     try:
+        as_of = datetime.now()
         trades = panda_data.get_stock_insider_transaction(
+            start_date=(as_of - timedelta(days=365)).strftime("%Y%m%d"),
+            end_date=as_of.strftime("%Y%m%d"),
             symbol=[ticker],
             fields=[]
         )
