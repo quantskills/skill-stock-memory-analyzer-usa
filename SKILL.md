@@ -358,3 +358,7 @@ stock-memory-analyzer/
 - 修改第三方代码、数据、论文或报告时，须保留来源、许可证和改动说明。
 
 维护者应定期检查来源链接、更新日期、过期数据提示和依赖兼容性。提交前确认仓库不含账号、密码、API key、私有数据集或其他敏感信息。
+
+## Pandadata compatibility
+
+[Pandadata 1.0.6 compatibility](references/pandadata-compatibility.md) — exact SDK baseline, validation scope, and shared guidance for all supported agent runtimes.

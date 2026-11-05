@@ -211,3 +211,6 @@ macOS may ask the current application for permission to automate Terminal.app. T
 - Maintainer: repository contributors
 
 Never commit credentials, API keys, private datasets, or other sensitive information. Attribute third-party data, code, papers, and reports, and comply with their licenses.
+
+
+Pandadata compatibility maintenance: [abgyjaguo](https://github.com/abgyjaguo). Existing authorship is retained.
